@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocClear — System Workflow</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0F1E3C;
+    --navy-mid: #1A2E52;
+    --navy-light: #243B6A;
+    --amber: #E8A020;
+    --amber-light: #F5C04A;
+    --teal: #1BBFA0;
+    --teal-light: #24D4B4;
+    --red: #E84545;
+    --purple: #7C5CFC;
+    --bg: #F0F3F9;
+    --white: #FFFFFF;
+    --border: #DDE3EF;
+    --text: #0F1E3C;
+    --muted: #7A8599;
+    --light: #B0BAD0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--navy);
+    padding: 28px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--amber), var(--amber-light));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 900; color: var(--navy);
+    font-family: 'Playfair Display', serif;
+  }
+  .logo-text { color: white; }
+  .logo-title { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 800; line-height: 1; }
+  .logo-sub { font-size: 11px; color: var(--light); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
+  .header-badge {
+    background: var(--amber); color: var(--navy);
+    padding: 6px 16px; border-radius: 99px;
+    font-size: 12px; font-weight: 800; letter-spacing: 0.05em;
+  }
+
+  /* ── Layout ── */
+  .page { padding: 40px 48px 60px; max-width: 1400px; margin: 0 auto; }
+
+  .section-label {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 24px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 40px;
+    background: white; border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 20px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--muted); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+  /* ── Main Flow Grid ── */
+  .flow-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    position: relative;
+  }
+
+  /* ── Module Columns ── */
+  .module-col {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 0 8px;
+  }
+
+  .module-header {
+    width: 100%; border-radius: 12px 12px 0 0;
+    padding: 14px 16px; text-align: center; margin-bottom: 0;
+    position: relative;
+  }
+  .module-header .mod-icon { font-size: 22px; margin-bottom: 4px; display: block; }
+  .module-header .mod-title {
+    font-size: 13px; font-weight: 800; color: white;
+    letter-spacing: 0.01em;
+  }
+  .module-header .mod-sub {
+    font-size: 10px; color: rgba(255,255,255,0.6);
+    margin-top: 2px; font-weight: 500;
+  }
+
+  .module-body {
+    width: 100%; flex: 1; display: flex; flex-direction: column; gap: 8px;
+    padding: 12px 0 0;
+  }
+
+  /* ── Step Cards ── */
+  .step {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+  }
+  .step:hover {
+    border-color: var(--amber);
+    box-shadow: 0 4px 16px rgba(232, 160, 32, 0.15);
+    transform: translateY(-1px);
+  }
+  .step.active {
+    border-color: var(--amber);
+    background: #FFFBF2;
+    box-shadow: 0 4px 20px rgba(232, 160, 32, 0.2);
+  }
+  .step-num {
+    width: 20px; height: 20px; border-radius: 6px;
+    font-size: 10px; font-weight: 800; color: white;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 6px;
+  }
+  .step-title { font-size: 12px; font-weight: 700; color: var(--text); line-height: 1.3; }
+  .step-desc { font-size: 10px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+
+  .step-trigger {
+    border-style: dashed;
+    background: #F8F9FC;
+  }
+
+  /* auto-trigger badge */
+  .auto-badge {
+    position: absolute; top: -8px; right: 8px;
+    background: var(--teal); color: white;
+    font-size: 8px; font-weight: 800; letter-spacing: 0.05em;
+    padding: 2px 7px; border-radius: 99px; text-transform: uppercase;
+  }
+
+  /* whatsapp badge */
+  .wa-badge {
+    position: absolute; top: -8px; right: 8px;
+    background: #25D366; color: white;
+    font-size: 8px; font-weight: 800;
+    padding: 2px 7px; border-radius: 99px;
+  }
+
+  /* ── Arrows between columns ── */
+  .flow-arrows {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    margin-top: -4px;
+  }
+
+  /* ── Cross-module flow section ── */
+  .flow-connections {
+    margin-top: 48px;
+  }
+
+  .connections-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .connection-card {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .connection-card:hover {
+    border-color: var(--amber);
+    box-shadow: 0 4px 16px rgba(232,160,32,0.12);
+  }
+  .conn-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .conn-content {}
+  .conn-title { font-size: 13px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+  .conn-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .conn-arrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700; margin-top: 8px;
+    padding: 3px 10px; border-radius: 6px;
+  }
+
+  /* ── Lifecycle Row ── */
+  .lifecycle {
+    margin-top: 48px;
+  }
+  .lifecycle-track {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 28px;
+    overflow-x: auto;
+  }
+  .lifecycle-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    min-width: 700px;
+  }
+  .lc-step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    padding: 0 8px;
+  }
+  .lc-bubble {
+    width: 48px; height: 48px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; margin: 0 auto 8px;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .lc-label { font-size: 11px; font-weight: 700; color: var(--text); }
+  .lc-sub { font-size: 9px; color: var(--muted); margin-top: 2px; }
+
+  .lc-arrow {
+    font-size: 18px; color: var(--light);
+    padding: 0 4px; flex-shrink: 0;
+    padding-bottom: 24px;
+  }
+
+  /* ── Detail Panel ── */
+  .detail-panel {
+    position: fixed;
+    right: 0; top: 0; bottom: 0;
+    width: 340px;
+    background: white;
+    border-left: 1px solid var(--border);
+    padding: 28px 24px;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 100;
+    overflow-y: auto;
+    box-shadow: -8px 0 40px rgba(0,0,0,0.08);
+  }
+  .detail-panel.open { transform: translateX(0); }
+  .detail-close {
+    position: absolute; top: 16px; right: 16px;
+    width: 30px; height: 30px; border-radius: 8px;
+    background: var(--bg); border: none; cursor: pointer;
+    font-size: 16px; display: flex; align-items: center; justify-content: center;
+  }
+  .detail-mod { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+  .detail-title { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 800; color: var(--navy); margin-bottom: 12px; line-height: 1.2; }
+  .detail-desc { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 20px; }
+  .detail-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .detail-list li {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 12px; color: var(--text); line-height: 1.5;
+    padding: 8px 12px; background: var(--bg); border-radius: 8px;
+  }
+  .detail-list li::before { content: '→'; color: var(--amber); font-weight: 800; flex-shrink: 0; }
+  .detail-validation {
+    margin-top: 20px; padding: 14px; background: #FFF9ED;
+    border: 1px solid #F5C04A40; border-radius: 10px;
+  }
+  .detail-validation h4 { font-size: 11px; font-weight: 800; color: var(--amber); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .detail-validation p { font-size: 11px; color: var(--muted); line-height: 1.6; }
+
+  /* ── Colors per module ── */
+  .col-customer   { background: linear-gradient(135deg, #0F1E3C, #1A2E52); }
+  .col-document   { background: linear-gradient(135deg, #7C5CFC, #9B7EFD); }
+  .col-service    { background: linear-gradient(135deg, #E8A020, #F5C04A); }
+  .col-invoice    { background: linear-gradient(135deg, #1BBFA0, #24D4B4); }
+  .col-finance    { background: linear-gradient(135deg, #E84545, #FF7070); }
+
+  .num-customer   { background: #0F1E3C; }
+  .num-document   { background: #7C5CFC; }
+  .num-service    { background: #E8A020; }
+  .num-invoice    { background: #1BBFA0; }
+  .num-finance    { background: #E84545; }
+
+  .conn-customer  { background: #0F1E3C18; }
+  .conn-document  { background: #7C5CFC18; }
+  .conn-service   { background: #E8A02018; }
+  .conn-invoice   { background: #1BBFA018; }
+  .conn-finance   { background: #E8454518; }
+
+  /* ── Column connector line ── */
+  .col-divider {
+    position: absolute;
+    top: 60px; bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, var(--border), transparent);
+  }
+
+  @media (max-width: 1100px) {
+    .page { padding: 24px; }
+    .flow-grid { grid-template-columns: 1fr 1fr; }
+    .connections-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">D</div>
+    <div class="logo-text">
+      <div class="logo-title">DocClear</div>
+      <div class="logo-sub">Management System</div>
+    </div>
+  </div>
+  <div class="header-badge">System Workflow</div>
+</div>
+
+<div class="page">
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#0F1E3C"></div> Customer Module</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7C5CFC"></div> Document Module</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#E8A020"></div> Service Module</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#1BBFA0"></div> Invoice Module</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#E84545"></div> Finance Module</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#1BBFA0; opacity:0.5; border: 1px solid #1BBFA0"></div> Auto-triggered</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#25D366"></div> WhatsApp Action</div>
+  </div>
+
+  <!-- Section: Module Flows -->
+  <div class="section-label">Core Module Workflows</div>
+
+  <div class="flow-grid">
+
+    <!-- ── CUSTOMER ── -->
+    <div class="module-col">
+      <div class="module-header col-customer">
+        <span class="mod-icon">👥</span>
+        <div class="mod-title">Customer</div>
+        <div class="mod-sub">Foundation of all records</div>
+      </div>
+      <div class="module-body">
+        <div class="step" onclick="showDetail('customer','create')">
+          <div class="step-num num-customer">1</div>
+          <div class="step-title">Create Customer Profile</div>
+          <div class="step-desc">Name, email, WhatsApp number (international format), address, trade license</div>
+        </div>
+        <div class="step" onclick="showDetail('customer','validate')">
+          <div class="step-num num-customer">2</div>
+          <div class="step-title">Validate & Save</div>
+          <div class="step-desc">Phone validated as +XXXXXXXXXXX. Dual-layer: Vuelidate + express-validator</div>
+        </div>
+        <div class="step" onclick="showDetail('customer','profile')">
+          <div class="step-num num-customer">3</div>
+          <div class="step-title">Customer Profile Active</div>
+          <div class="step-desc">Linked to Documents, Services, Invoices. Phone used for all WhatsApp links</div>
+        </div>
+        <div class="step step-trigger" onclick="showDetail('customer','whatsapp')">
+          <div class="wa-badge">WhatsApp</div>
+          <div class="step-num" style="background:#25D366">4</div>
+          <div class="step-title">Direct WhatsApp</div>
+          <div class="step-desc">Click icon → opens wa.me/[number] in WhatsApp app</div>
+        </div>
+        <div class="step" onclick="showDetail('customer','delete')">
+          <div class="step-num num-customer">5</div>
+          <div class="step-title">Soft Delete Guard</div>
+          <div class="step-desc">Blocked if active service orders exist. Warns on unpaid invoices</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DOCUMENT ── -->
+    <div class="module-col">
+      <div class="module-header col-document">
+        <span class="mod-icon">📄</span>
+        <div class="mod-title">Documents</div>
+        <div class="mod-sub">Expiry tracking & alerts</div>
+      </div>
+      <div class="module-body">
+        <div class="step" onclick="showDetail('document','add')">
+          <div class="step-num num-document">1</div>
+          <div class="step-title">Add Document</div>
+          <div class="step-desc">Select customer, type (Visa / Passport / Trade License / Emirates ID / Medical), expiry date</div>
+        </div>
+        <div class="step" onclick="showDetail('document','track')">
+          <div class="step-num num-document">2</div>
+          <div class="step-title">Expiry Tracking</div>
+          <div class="step-desc">System computes days remaining. Categorises: Expired / Critical (≤7d) / Warning (≤14d) / Month (≤30d)</div>
+        </div>
+        <div class="step" onclick="showDetail('document','kanban')">
+          <div class="step-num num-document">3</div>
+          <div class="step-title">Kanban View</div>
+          <div class="step-desc">4-column board by urgency. Visual overview for staff planning</div>
+        </div>
+        <div class="step" onclick="showDetail('document','calendar')">
+          <div class="step-num num-document">4</div>
+          <div class="step-title">Calendar View</div>
+          <div class="step-desc">Monthly grid with colored chips on expiry dates. Click to see document details</div>
+        </div>
+        <div class="step step-trigger" onclick="showDetail('document','reminder')">
+          <div class="wa-badge">WhatsApp</div>
+          <div class="step-num" style="background:#25D366">5</div>
+          <div class="step-title">Send Expiry Reminder</div>
+          <div class="step-desc">Pre-filled message: "Your [DocType] No.[X] expires on [Date]. Contact us to renew."</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SERVICE ── -->
+    <div class="module-col">
+      <div class="module-header col-service">
+        <span class="mod-icon">⚙️</span>
+        <div class="mod-title">Services</div>
+        <div class="mod-sub">Workflow & job tracking</div>
+      </div>
+      <div class="module-body">
+        <div class="step" onclick="showDetail('service','catalog')">
+          <div class="step-num num-service">1</div>
+          <div class="step-title">Define Service Types</div>
+          <div class="step-desc">Name, category, selling price, cost price. Profit computed automatically</div>
+        </div>
+        <div class="step" onclick="showDetail('service','order')">
+          <div class="step-num num-service">2</div>
+          <div class="step-title">Create Service Order</div>
+          <div class="step-desc">Select customer + service type. Status: Pending. Profit preview shown</div>
+        </div>
+        <div class="step" onclick="showDetail('service','start')">
+          <div class="step-num num-service">3</div>
+          <div class="step-title">Start Work →</div>
+          <div class="step-desc">Status: Pending → In Progress. Records started_at timestamp</div>
+        </div>
+        <div class="step" onclick="showDetail('service','complete')">
+          <div class="step-num num-service">4</div>
+          <div class="step-title">Complete ✓</div>
+          <div class="step-desc">Status: In Progress → Completed. Records completed_at timestamp</div>
+        </div>
+        <div class="step step-trigger" onclick="showDetail('service','autoinvoice')">
+          <div class="auto-badge">Auto</div>
+          <div class="step-num num-service">5</div>
+          <div class="step-title">Invoice Auto-Created</div>
+          <div class="step-desc">Draft invoice generated instantly with service pricing pre-filled</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── INVOICE ── -->
+    <div class="module-col">
+      <div class="module-header col-invoice">
+        <span class="mod-icon">🧾</span>
+        <div class="mod-title">Invoices</div>
+        <div class="mod-sub">Billing & collection</div>
+      </div>
+      <div class="module-body">
+        <div class="step" onclick="showDetail('invoice','draft')">
+          <div class="step-num num-invoice">1</div>
+          <div class="step-title">Draft Invoice</div>
+          <div class="step-desc">Auto-created from service OR manual creation. Add items, discount, notes</div>
+        </div>
+        <div class="step" onclick="showDetail('invoice','send')">
+          <div class="step-num num-invoice">2</div>
+          <div class="step-title">Send to Customer</div>
+          <div class="step-desc">Status: Draft → Sent. Due date set. PDF downloadable</div>
+        </div>
+        <div class="step step-trigger" onclick="showDetail('invoice','whatsapp')">
+          <div class="wa-badge">WhatsApp</div>
+          <div class="step-num" style="background:#25D366">3</div>
+          <div class="step-title">Share via WhatsApp</div>
+          <div class="step-desc">"Your invoice INV-XXXX for AED X is ready." Opens wa.me link directly</div>
+        </div>
+        <div class="step" onclick="showDetail('invoice','pay')">
+          <div class="step-num num-invoice">4</div>
+          <div class="step-title">Mark as Paid</div>
+          <div class="step-desc">Select Cash or Bank account. Confirms payment date</div>
+        </div>
+        <div class="step step-trigger" onclick="showDetail('invoice','wallet')">
+          <div class="auto-badge">Auto</div>
+          <div class="step-num num-invoice">5</div>
+          <div class="step-title">Wallet Updated</div>
+          <div class="step-desc">Income transaction auto-created. Account balance increases</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FINANCE ── -->
+    <div class="module-col">
+      <div class="module-header col-finance">
+        <span class="mod-icon">💰</span>
+        <div class="mod-title">Finance</div>
+        <div class="mod-sub">Expenses, wallet & reports</div>
+      </div>
+      <div class="module-body">
+        <div class="step" onclick="showDetail('finance','expense')">
+          <div class="step-num num-finance">1</div>
+          <div class="step-title">Log Expense</div>
+          <div class="step-desc">Description, category (Govt Fees / Rent / PRO / Other), amount. Status: Unpaid</div>
+        </div>
+        <div class="step" onclick="showDetail('finance','payexpense')">
+          <div class="step-num num-finance">2</div>
+          <div class="step-title">Pay Expense</div>
+          <div class="step-desc">Select account, confirm date. Status: Unpaid → Paid</div>
+        </div>
+        <div class="step step-trigger" onclick="showDetail('finance','walletout')">
+          <div class="auto-badge">Auto</div>
+          <div class="step-num num-finance">3</div>
+          <div class="step-title">Wallet Deducted</div>
+          <div class="step-desc">Expense transaction auto-created. Account balance decreases</div>
+        </div>
+        <div class="step" onclick="showDetail('finance','transfer')">
+          <div class="step-num num-finance">4</div>
+          <div class="step-title">Fund Transfer</div>
+          <div class="step-desc">Move money between Cash ↔ Bank. Balance validation before transfer</div>
+        </div>
+        <div class="step" onclick="showDetail('finance','reports')">
+          <div class="step-num num-finance">5</div>
+          <div class="step-title">Reports & Analytics</div>
+          <div class="step-desc">Revenue vs cost charts, monthly trends, revenue by service, top customers</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /flow-grid -->
+
+
+  <!-- ── End-to-End Lifecycle ── -->
+  <div class="lifecycle" style="margin-top:48px;">
+    <div class="section-label">End-to-End Customer Journey</div>
+    <div class="lifecycle-track">
+      <div class="lifecycle-row">
+
+        <div class="lc-step" onclick="showDetail('customer','create')">
+          <div class="lc-bubble" style="background:#0F1E3C18; border-color:#0F1E3C30">👤</div>
+          <div class="lc-label">Customer<br>Created</div>
+          <div class="lc-sub" style="color:#0F1E3C; font-weight:700">Customer</div>
+        </div>
+        <div class="lc-arrow">→</div>
+
+        <div class="lc-step" onclick="showDetail('document','add')">
+          <div class="lc-bubble" style="background:#7C5CFC18; border-color:#7C5CFC30">📄</div>
+          <div class="lc-label">Documents<br>Added</div>
+          <div class="lc-sub" style="color:#7C5CFC; font-weight:700">Documents</div>
+        </div>
+        <div class="lc-arrow">→</div>
+
+        <div class="lc-step" onclick="showDetail('document','reminder')">
+          <div class="lc-bubble" style="background:#25D36618; border-color:#25D36630">💬</div>
+          <div class="lc-label">Expiry<br>Reminder Sent</div>
+          <div class="lc-sub" style="color:#25D366; font-weight:700">WhatsApp</div>
+        </div>
+        <div class="lc-arrow">→</div>
+
+        <div class="lc-step" onclick="showDetail('service','order')">
+          <div class="lc-bubble" style="background:#E8A02018; border-color:#E8A02030">⚙️</div>
+          <div class="lc-label">Service<br>Order Placed</div>
+          <div class="lc-sub" style="color:#E8A020; font-weight:700">Services</div>
+        </div>
+        <div class="lc-arrow">→</div>
+
+        <div class="lc-step" onclick="showDetail('service','complete')">
+          <div class="lc-bubble" style="background:#E8A02018; border-color:#E8A02030">✅</div>
+          <div class="lc-label">Work<br>Completed</div>
+          <div class="lc-sub" style="color:#E8A020; font-weight:700">Services</div>
+        </div>
+        <div class="lc-arrow" style="color:#1BBFA0; font-weight:900">⚡</div>
+
+        <div class="lc-step" onclick="showDetail('invoice','draft')">
+          <div class="lc-bubble" style="background:#1BBFA018; border-color:#1BBFA030">🧾</div>
+          <div class="lc-label">Invoice<br>Auto-Created</div>
+          <div class="lc-sub" style="color:#1BBFA0; font-weight:700">Invoices</div>
+        </div>
+        <div class="lc-arrow">→</div>
+
+        <div class="lc-step" onclick="showDetail('invoice','whatsapp')">
+          <div class="lc-bubble" style="background:#25D36618; border-color:#25D36630">💬</div>
+          <div class="lc-label">Invoice<br>Shared via WA</div>
+          <div class="lc-sub" style="color:#25D366; font-weight:700">WhatsApp</div>
+        </div>
+        <div class="lc-arrow">→</div>
+
+        <div class="lc-step" onclick="showDetail('invoice','pay')">
+          <div class="lc-bubble" style="background:#1BBFA018; border-color:#1BBFA030">💳</div>
+          <div class="lc-label">Payment<br>Received</div>
+          <div class="lc-sub" style="color:#1BBFA0; font-weight:700">Invoices</div>
+        </div>
+        <div class="lc-arrow" style="color:#1BBFA0; font-weight:900">⚡</div>
+
+        <div class="lc-step" onclick="showDetail('finance','reports')">
+          <div class="lc-bubble" style="background:#E8454518; border-color:#E8454530">📊</div>
+          <div class="lc-label">Profit<br>in Reports</div>
+          <div class="lc-sub" style="color:#E84545; font-weight:700">Finance</div>
+        </div>
+
+      </div>
+      <div style="margin-top:16px; font-size:11px; color:var(--muted); display:flex; align-items:center; gap:8px;">
+        <span style="color:#1BBFA0; font-weight:800; font-size:14px;">⚡</span> Lightning bolt = automatic trigger (no manual action required)
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Cross-Module Connections ── -->
+  <div class="flow-connections">
+    <div class="section-label" style="margin-top:48px;">Cross-Module Automation & Impact</div>
+    <div class="connections-grid">
+
+      <div class="connection-card" onclick="showDetail('service','autoinvoice')">
+        <div class="conn-icon conn-service">⚙️</div>
+        <div class="conn-content">
+          <div class="conn-title">Service Completed → Invoice Auto-Created</div>
+          <div class="conn-desc">When a service order is marked Completed, a Draft invoice is instantly generated with the service's sell price pre-filled as a line item.</div>
+          <div class="conn-arrow" style="background:#E8A02015; color:#E8A020">Service Order <span>→</span> Invoice (Draft)</div>
+        </div>
+      </div>
+
+      <div class="connection-card" onclick="showDetail('invoice','wallet')">
+        <div class="conn-icon conn-invoice">🧾</div>
+        <div class="conn-content">
+          <div class="conn-title">Invoice Paid → Wallet Income Transaction</div>
+          <div class="conn-desc">Marking an invoice as Paid creates a Wallet Income transaction for the selected account (Cash or Bank), updating the running balance automatically.</div>
+          <div class="conn-arrow" style="background:#1BBFA015; color:#1BBFA0">Invoice Paid <span>→</span> Wallet +Income</div>
+        </div>
+      </div>
+
+      <div class="connection-card" onclick="showDetail('finance','walletout')">
+        <div class="conn-icon conn-finance">💳</div>
+        <div class="conn-content">
+          <div class="conn-title">Expense Paid → Wallet Deduction</div>
+          <div class="conn-desc">When an expense is marked Paid, the amount is automatically deducted from the chosen account, maintaining a real-time accurate balance.</div>
+          <div class="conn-arrow" style="background:#E8454515; color:#E84545">Expense Paid <span>→</span> Wallet −Deducted</div>
+        </div>
+      </div>
+
+      <div class="connection-card" onclick="showDetail('customer','whatsapp')">
+        <div class="conn-icon" style="background:#25D36618">💬</div>
+        <div class="conn-content">
+          <div class="conn-title">Customer Phone → All WhatsApp Actions</div>
+          <div class="conn-desc">The WhatsApp number stored on the customer profile powers every communication touchpoint: document reminders, invoice shares, and direct messages — zero re-entry.</div>
+          <div class="conn-arrow" style="background:#25D36615; color:#25D366">Customer Phone <span>→</span> wa.me links everywhere</div>
+        </div>
+      </div>
+
+      <div class="connection-card" onclick="showDetail('document','track')">
+        <div class="conn-icon conn-document">📊</div>
+        <div class="conn-content">
+          <div class="conn-title">Documents → Dashboard Expiry Counters</div>
+          <div class="conn-desc">Dashboard "Expiring Soon" card reads live from the documents table. Clicking it navigates directly to the Documents page filtered by critical/warning status.</div>
+          <div class="conn-arrow" style="background:#7C5CFC15; color:#7C5CFC">Documents <span>→</span> Dashboard counters</div>
+        </div>
+      </div>
+
+      <div class="connection-card" onclick="showDetail('finance','reports')">
+        <div class="conn-icon conn-finance">📈</div>
+        <div class="conn-content">
+          <div class="conn-title">All Modules → Reports Aggregation</div>
+          <div class="conn-desc">Reports read across Invoices (revenue), Expenses (costs), Service types (breakdown by category), and Customers (top spenders) to compute profit and trends.</div>
+          <div class="conn-arrow" style="background:#E8454515; color:#E84545">All modules <span>→</span> Reports dashboard</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+
+<!-- ── Detail Panel ── -->
+<div class="detail-panel" id="detailPanel">
+  <button class="detail-close" onclick="closeDetail()">✕</button>
+  <div id="detailContent"></div>
+</div>
+
+<script>
+const DETAILS = {
+  customer: {
+    create: {
+      mod: "Customer Module", color: "#0F1E3C",
+      title: "Create Customer Profile",
+      desc: "The customer record is the anchor for all other data in DocClear. Every document, service order, invoice, and WhatsApp communication traces back to a customer profile.",
+      steps: [
+        "Fill in company/individual name (required)",
+        "Enter WhatsApp number in international format (+971XXXXXXXXX)",
+        "Optional: email, address, city, country, trade license number",
+        "Vuelidate validates phone format client-side before submission",
+        "express-validator re-validates server-side — dual-layer protection",
+        "Customer saved with is_active = true"
+      ],
+      validation: "Phone: +[country code][number], 8–15 digits. Email: valid format if provided. Name: 2–150 characters."
+    },
+    validate: {
+      mod: "Customer Module", color: "#0F1E3C",
+      title: "Validation Rules",
+      desc: "All inputs are validated at two layers — never trust the client alone.",
+      steps: [
+        "Name: required, 2–150 chars",
+        "Email: optional, valid format if provided",
+        "Phone: required, /^\\+?[1-9]\\d{7,14}$/ pattern",
+        "Helper text: 'Format: +971501234567'",
+        "Submit button disabled while form is invalid",
+        "Field errors shown on blur, not on every keystroke"
+      ],
+      validation: "Dual layer: Vuelidate (frontend) + express-validator (backend). Backend always re-validates regardless of frontend state."
+    },
+    whatsapp: {
+      mod: "Customer Module", color: "#25D366",
+      title: "WhatsApp Direct Link",
+      desc: "No API required. A simple wa.me deep link opens the native WhatsApp app with the customer pre-selected.",
+      steps: [
+        "Phone stored as: +971501234567",
+        "useWhatsApp composable strips spaces, dashes, brackets",
+        "Removes leading 0 if local format accidentally entered",
+        "Builds: https://wa.me/971501234567",
+        "Optional pre-filled message encoded in URL",
+        "window.open(link, '_blank') — opens WhatsApp app"
+      ],
+      validation: "Phone number cleaned at link-build time. If number is malformed, link is still generated but WhatsApp will show an error to the user."
+    },
+    profile: {
+      mod: "Customer Module", color: "#0F1E3C",
+      title: "Customer Detail Page",
+      desc: "A tabbed detail view gives staff a complete picture of one customer in a single screen.",
+      steps: [
+        "Tab 1 — Overview: all profile fields",
+        "Tab 2 — Documents: all docs with expiry badges",
+        "Tab 3 — Invoices: list with status and WhatsApp share",
+        "Tab 4 — Service Orders: workflow timeline",
+        "Top-right: Edit button and WhatsApp button",
+        "All tabs lazy-load from separate API endpoints"
+      ],
+      validation: "N/A — read-only view. Edit opens a shared CustomerForm component with full validation."
+    },
+    delete: {
+      mod: "Customer Module", color: "#E84545",
+      title: "Delete Guard Logic",
+      desc: "Customers are never hard-deleted if they have history. Soft delete keeps data integrity.",
+      steps: [
+        "DELETE /customers/:id checks for active ServiceOrders",
+        "Blocks deletion if any order is Pending or InProgress",
+        "Returns warning count of unpaid invoices",
+        "Sets is_active = false (soft delete)",
+        "Inactive customers hidden from default list view",
+        "All linked documents, invoices remain intact"
+      ],
+      validation: "Server enforces deletion rules. Frontend shows confirmation dialog with dependency count before proceeding."
+    }
+  },
+  document: {
+    add: {
+      mod: "Document Module", color: "#7C5CFC",
+      title: "Add Document",
+      desc: "Documents are linked to a customer and tracked by expiry date. The system computes urgency automatically.",
+      steps: [
+        "Select customer (searchable autocomplete)",
+        "Select type: Visa / Passport / Trade License / Emirates ID / Medical Fitness / Other",
+        "Enter document number (optional reference)",
+        "Set issue date and expiry date (both date pickers)",
+        "Expiry must be after issue date — validated inline",
+        "Days until expiry shown as helper text once date set"
+      ],
+      validation: "Expiry date required. If issue date provided, expiry must be after issue. Document number: optional, max 100 chars."
+    },
+    track: {
+      mod: "Document Module", color: "#7C5CFC",
+      title: "Expiry Tracking Logic",
+      desc: "The backend computes days_until_expiry dynamically — never stored, always accurate.",
+      steps: [
+        "API /documents/expiring returns 4 groups",
+        "Critical: expiry ≤ 7 days (red)",
+        "Warning: 8–14 days (amber)",
+        "Month: 15–30 days (orange)",
+        "Safe: > 30 days (green)",
+        "Dashboard 'Expiring Soon' = documents ≤ 30 days"
+      ],
+      validation: "Computed server-side via DATEDIFF(expiry_date, CURDATE()). Not stored to avoid stale data."
+    },
+    kanban: {
+      mod: "Document Module", color: "#7C5CFC",
+      title: "Kanban View",
+      desc: "Visual 4-column board organised by expiry urgency for quick daily review by staff.",
+      steps: [
+        "Columns: Expired | 1 Week | 2 Weeks | 1 Month | Safe",
+        "Each card: doc type, customer name, doc number, days badge",
+        "WhatsApp button on every card for instant reminder",
+        "Count badge on each column header",
+        "Cards sorted by expiry date (most urgent first)",
+        "Toggle button to switch to Calendar view"
+      ],
+      validation: "N/A — display only. Actions (WhatsApp, Edit) available per card."
+    },
+    calendar: {
+      mod: "Document Module", color: "#7C5CFC",
+      title: "Calendar View",
+      desc: "Monthly calendar with color-coded chips on expiry dates for planning and scheduling.",
+      steps: [
+        "Current month displayed as 7-column week grid",
+        "Colored chips appear on dates with expiring docs",
+        "Red chip = expired/critical, Amber = warning, Green = safe",
+        "Click any chip → popover with document details",
+        "WhatsApp button in popover for direct reminder",
+        "Prev/Next month navigation arrows"
+      ],
+      validation: "N/A — display only."
+    },
+    reminder: {
+      mod: "Document Module", color: "#25D366",
+      title: "WhatsApp Expiry Reminder",
+      desc: "One-click to send a pre-formatted expiry reminder to the customer on WhatsApp.",
+      steps: [
+        "Uses customer.phone_whatsapp from linked customer record",
+        "Pre-filled message template auto-populated:",
+        "\"Dear [Name], your [DocType] (No: [DocNo]) expires on [Date]. Please contact us to initiate the renewal process.\"",
+        "Link opens WhatsApp app with message ready to send",
+        "Staff reviews and taps Send in WhatsApp",
+        "No API calls — purely wa.me deep link"
+      ],
+      validation: "Phone must be valid (inherited from customer validation). If customer has no phone, WhatsApp button is disabled."
+    }
+  },
+  service: {
+    catalog: {
+      mod: "Service Module", color: "#E8A020",
+      title: "Service Catalog",
+      desc: "Define all the services your company offers, with selling and cost prices to automatically compute profitability.",
+      steps: [
+        "Name: unique, e.g. 'Visa Processing', 'Trade License Renewal'",
+        "Category: Immigration / Business / Identity / Health",
+        "Sell Price: what you charge the customer",
+        "Cost Price: what it costs your company",
+        "Profit = Sell - Cost (shown in catalog table)",
+        "Warning shown if cost ≥ sell price (not blocked)"
+      ],
+      validation: "Name: required, unique. Both prices: required, > 0. Warning (not error) if cost ≥ sell price."
+    },
+    order: {
+      mod: "Service Module", color: "#E8A020",
+      title: "Create Service Order",
+      desc: "Link a customer to a service type and track it through to completion.",
+      steps: [
+        "Select customer (autocomplete search by name)",
+        "Select service type (shows name + sell price)",
+        "Profit preview: 'You will earn AED X on this service'",
+        "Add notes (optional, e.g. assignee name)",
+        "Order created with status: Pending",
+        "Appears in Kanban board under Pending column"
+      ],
+      validation: "Customer: required (must exist). Service type: required (must be active). Notes: optional, max 500 chars."
+    },
+    start: {
+      mod: "Service Module", color: "#E8A020",
+      title: "Start Work",
+      desc: "Advancing a service order from Pending to In Progress records the start time and moves the card on the board.",
+      steps: [
+        "Click 'Start →' button on the Kanban card",
+        "PUT /service-orders/:id/status { status: InProgress }",
+        "started_at = NOW() recorded in database",
+        "Card moves to In Progress column",
+        "Duration can later be computed (completed_at - started_at)",
+        "Status chip updates in Customer detail page too"
+      ],
+      validation: "Can only move forward (Pending→InProgress→Completed). Cannot skip steps or go backward."
+    },
+    complete: {
+      mod: "Service Module", color: "#E8A020",
+      title: "Complete Service Order",
+      desc: "Completing the order finalises work, records time, and triggers automatic invoice creation.",
+      steps: [
+        "Click 'Complete ✓' on the Kanban card",
+        "Confirmation dialog: 'This will auto-generate a Draft Invoice. Continue?'",
+        "PUT /service-orders/:id/status { status: Completed }",
+        "completed_at = NOW() recorded",
+        "Backend immediately creates Draft Invoice",
+        "Snackbar: 'Invoice INV-2025-XXXX created as Draft'"
+      ],
+      validation: "Can only complete InProgress orders. Completed orders cannot be re-opened (create a new order instead)."
+    },
+    autoinvoice: {
+      mod: "Service Module → Invoices", color: "#1BBFA0",
+      title: "Auto Invoice Creation",
+      desc: "The moment a service order is completed, a Draft invoice is programmatically created — zero manual entry needed.",
+      steps: [
+        "Backend: ServiceOrder status set to Completed",
+        "Invoice auto-created: invoice_number = INV-YYYY-XXXX",
+        "Customer linked from service order",
+        "One invoice item: service name, qty 1, unit_price = sell_price",
+        "cost_price = service.cost_price (for profit tracking)",
+        "Invoice status: Draft — ready for staff to review and send"
+      ],
+      validation: "Auto-creation runs in same DB transaction as status update. If invoice creation fails, status update is rolled back."
+    }
+  },
+  invoice: {
+    draft: {
+      mod: "Invoice Module", color: "#1BBFA0",
+      title: "Draft Invoice",
+      desc: "Invoices start as Draft — either auto-created from a completed service or manually created by staff.",
+      steps: [
+        "Auto-created: pre-filled with service data",
+        "Manual: select customer, add line items",
+        "Line items: description, quantity, unit price",
+        "Discount field (optional, flat or percentage)",
+        "Totals computed in real-time as items are added",
+        "Only Draft invoices can be edited or deleted"
+      ],
+      validation: "At least 1 line item required. Each item: description required, qty ≥ 1, price > 0. Computed fields (subtotal, total) are read-only."
+    },
+    send: {
+      mod: "Invoice Module", color: "#1BBFA0",
+      title: "Send Invoice",
+      desc: "Changing status to Sent signals the invoice has been dispatched to the customer.",
+      steps: [
+        "Status: Draft → Sent",
+        "Due date can be set at this stage",
+        "PDF download available (generated via pdfkit)",
+        "Invoice number format: INV-YYYY-XXXX (auto-incremented)",
+        "Status appears in Customer detail Invoices tab",
+        "Overdue flag triggers if due_date passes without payment"
+      ],
+      validation: "Sent invoices can have status changed but not edited. PDF generated from current invoice data."
+    },
+    whatsapp: {
+      mod: "Invoice Module", color: "#25D366",
+      title: "Share Invoice via WhatsApp",
+      desc: "Staff can share invoice details with the customer in one tap — opens WhatsApp app directly.",
+      steps: [
+        "Uses customer.phone_whatsapp from linked customer",
+        "Pre-filled message:",
+        "\"Dear [Name], your invoice INV-XXXX for AED [Total] is ready. Please arrange payment at your earliest convenience.\"",
+        "wa.me link opens WhatsApp with message pre-filled",
+        "Staff taps Send in WhatsApp app",
+        "Available from both invoice list row and invoice detail page"
+      ],
+      validation: "N/A — purely a link builder. No API calls."
+    },
+    pay: {
+      mod: "Invoice Module", color: "#1BBFA0",
+      title: "Mark Invoice as Paid",
+      desc: "Recording payment updates the invoice and automatically credits the selected wallet account.",
+      steps: [
+        "Click 'Mark as Paid' button",
+        "Dialog: choose account (Cash or Bank)",
+        "Confirm payment date (default: today)",
+        "PUT /invoices/:id/status { status: Paid, account_id }",
+        "paid_at = NOW() recorded",
+        "WalletTransaction auto-created (Income)"
+      ],
+      validation: "Account required. Cannot mark paid if already paid. Cannot mark paid if Cancelled."
+    },
+    wallet: {
+      mod: "Invoice → Wallet", color: "#1BBFA0",
+      title: "Wallet Auto-Updated",
+      desc: "Paying an invoice automatically flows money into the correct wallet account — no manual ledger entry.",
+      steps: [
+        "WalletTransaction created: type = Income, direction = In",
+        "account_id = chosen account (Cash or Bank)",
+        "amount = invoice.total",
+        "reference_id = invoice.id, reference_type = 'Invoice'",
+        "Account running balance increases",
+        "Transaction visible in Wallet transaction history with invoice link"
+      ],
+      validation: "Created in same DB transaction as invoice status update. Atomic — both succeed or both fail."
+    }
+  },
+  finance: {
+    expense: {
+      mod: "Finance Module", color: "#E84545",
+      title: "Log an Expense",
+      desc: "Record any business expense with category tagging for clean reporting.",
+      steps: [
+        "Description: e.g. 'Government Fees March 2025'",
+        "Category: Govt Fees / Rent / PRO Charges / Typing Fees / Salary / Other",
+        "Amount in AED",
+        "Status defaults to Unpaid",
+        "Notes field for additional context",
+        "Appears in Expense list with red Unpaid chip"
+      ],
+      validation: "Description: required, 3–200 chars. Amount: required, > 0. Category: optional but recommended for reporting."
+    },
+    payexpense: {
+      mod: "Finance Module", color: "#E84545",
+      title: "Pay an Expense",
+      desc: "Marking an expense as paid records the payment and automatically deducts from the chosen account.",
+      steps: [
+        "Click 'Mark Paid' on expense row",
+        "Dialog: select account (Cash or Bank)",
+        "Shows: 'Available balance: AED X'",
+        "Warning shown if account balance < expense amount",
+        "Payment date picker (default today)",
+        "PUT /expenses/:id/pay { account_id, payment_date }"
+      ],
+      validation: "Account: required. Payment date: required. Client-side balance check warns if insufficient but doesn't block (edge cases like same-time transactions)."
+    },
+    walletout: {
+      mod: "Finance → Wallet", color: "#E84545",
+      title: "Wallet Auto-Deducted",
+      desc: "Paying an expense automatically creates an expense transaction reducing the account balance.",
+      steps: [
+        "WalletTransaction created: type = Expense, direction = Out",
+        "account_id = chosen account",
+        "amount = expense.amount",
+        "reference_id = expense.id, reference_type = 'Expense'",
+        "Account running balance decreases",
+        "Transaction visible in Wallet history with expense description"
+      ],
+      validation: "Atomic with expense status update. Balance computed from all transactions — never stored raw."
+    },
+    transfer: {
+      mod: "Finance Module", color: "#E84545",
+      title: "Fund Transfer",
+      desc: "Move money between Cash and Bank accounts. Two transactions created atomically.",
+      steps: [
+        "Select From account and To account (cannot be same)",
+        "Enter amount — shows 'Available: AED X' for From account",
+        "Validation: amount ≤ from_account balance",
+        "Two WalletTransactions created: Out (from) + In (to)",
+        "Both accounts update simultaneously",
+        "Transfer appears in transaction history for both accounts"
+      ],
+      validation: "From ≠ To. Amount > 0 and ≤ available balance. Atomic: if either transaction fails, both roll back."
+    },
+    reports: {
+      mod: "Reports Module", color: "#E84545",
+      title: "Reports & Analytics",
+      desc: "Consolidated financial view drawing from all modules — revenue, costs, profit, trends, and breakdowns.",
+      steps: [
+        "Financial Summary: Revenue / Cost / Net Profit / Margin %",
+        "Monthly Bar Chart: Revenue vs Cost vs Profit (last 6 months)",
+        "Service Donut Chart: revenue contribution per service type",
+        "Expense by Category breakdown table",
+        "Top 10 Customers by revenue",
+        "Date range filter + CSV export"
+      ],
+      validation: "Date range: from must be before to. Max range: 1 year. Empty state shown if no data in range."
+    }
+  }
+};
+
+function showDetail(module, step) {
+  const d = DETAILS[module]?.[step];
+  if (!d) return;
+
+  const html = `
+    <div class="detail-mod" style="color:${d.color}">${d.mod}</div>
+    <div class="detail-title">${d.title}</div>
+    <div class="detail-desc">${d.desc}</div>
+    <ul class="detail-list">
+      ${d.steps.map(s => `<li>${s}</li>`).join('')}
+    </ul>
+    ${d.validation ? `
+    <div class="detail-validation">
+      <h4>⚡ Validation Rules</h4>
+      <p>${d.validation}</p>
+    </div>` : ''}
+  `;
+
+  document.getElementById('detailContent').innerHTML = html;
+  document.getElementById('detailPanel').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detailPanel').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDetail();
+});
+</script>
+</body>
+</html>

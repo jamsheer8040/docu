@@ -1,0 +1,182 @@
+const { Op } = require('sequelize');
+const { Customer, Document, Invoice, ServiceOrder, ServiceType, DocumentType } = require('../models');
+const { validationResult } = require('express-validator');
+
+/**
+ * Get all customers with pagination and search
+ */
+exports.getCustomers = async (req, res) => {
+  let { page = 1, limit = 10, search = '', is_active } = req.query;
+  limit = Math.min(parseInt(limit), 1000);
+  const offset = (page - 1) * limit;
+
+  const where = {};
+  if (is_active !== undefined) {
+    where.is_active = is_active === 'true';
+  }
+  
+  if (search) {
+    where[Op.or] = [
+      { name: { [Op.like]: `%${search}%` } },
+      { email: { [Op.like]: `%${search}%` } },
+      { phone_whatsapp: { [Op.like]: `%${search}%` } },
+      { city: { [Op.like]: `%${search}%` } }
+    ];
+  }
+
+  try {
+    const { count, rows } = await Customer.findAndCountAll({
+      where,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['name', 'ASC']],
+      include: [
+        { 
+          model: Document, 
+          limit: 3, 
+          include: [{ model: DocumentType, attributes: ['name'] }],
+          order: [['expiry_date', 'ASC']] 
+        }
+      ]
+    });
+
+    res.json({
+      success: true,
+      data: rows,
+      meta: {
+        total: count,
+        page: parseInt(page),
+        last_page: Math.ceil(count / limit)
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error fetching customers.' });
+  }
+};
+
+/**
+ * Get single customer by ID
+ */
+exports.getCustomerById = async (req, res) => {
+  try {
+    const customer = await Customer.findByPk(req.params.id, {
+      include: [
+        { 
+          model: Document, 
+          limit: 20, 
+          include: [{ model: DocumentType, attributes: ['name', 'category'] }],
+          order: [['expiry_date', 'ASC']] 
+        },
+        { 
+          model: Invoice, 
+          limit: 20, 
+          order: [['created_at', 'DESC']] 
+        },
+        { 
+          model: ServiceOrder, 
+          limit: 20, 
+          include: [
+            { model: ServiceType, attributes: ['name', 'sell_price'] },
+            { model: Invoice, attributes: ['id', 'invoice_number', 'status'] }
+          ],
+          order: [['created_at', 'DESC']] 
+        }
+      ]
+    });
+    
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'Customer not found.' });
+    }
+    res.json({ success: true, data: customer });
+  } catch (err) {
+    console.error('Error fetching customer profile:', err);
+    res.status(500).json({ success: false, message: 'Error fetching customer profile details.' });
+  }
+};
+
+/**
+ * Create a new customer
+ */
+exports.createCustomer = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, errors: errors.array() });
+  }
+
+  try {
+    const customer = await Customer.create(req.body);
+    res.status(201).json({ success: true, data: customer });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error creating customer.' });
+  }
+};
+
+/**
+ * Update an existing customer
+ */
+exports.updateCustomer = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, errors: errors.array() });
+  }
+
+  try {
+    const customer = await Customer.findByPk(req.params.id);
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'Customer not found.' });
+    }
+    await customer.update(req.body);
+    res.json({ success: true, data: customer });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error updating customer.' });
+  }
+};
+
+/**
+ * Soft delete a customer (toggle is_active)
+ */
+exports.deleteCustomer = async (req, res) => {
+  try {
+    const customer = await Customer.findByPk(req.params.id);
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'Customer not found.' });
+    }
+
+    // CHECK FOR ACTIVE SERVICE ORDERS
+    const activeOrders = await ServiceOrder.count({
+      where: {
+        customer_id: customer.id,
+        status: { [Op.notIn]: ['Completed', 'Cancelled'] }
+      }
+    });
+
+    if (activeOrders > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Cannot deactivate customer with active service orders. Complete or cancel them first.' 
+      });
+    }
+
+    // CHECK FOR UNPAID INVOICES
+    const unpaidInvoices = await Invoice.count({
+      where: {
+        customer_id: customer.id,
+        status: { [Op.notIn]: ['Paid', 'Cancelled'] }
+      }
+    });
+
+    if (unpaidInvoices > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Cannot deactivate customer with unpaid invoices. Pay or cancel them first.' 
+      });
+    }
+
+    customer.is_active = false;
+    await customer.save();
+
+    res.json({ success: true, message: 'Customer deactivated successfully.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error deactivating customer.' });
+  }
+};

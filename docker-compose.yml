@@ -1,0 +1,43 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: docclear_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: docclear_db
+      MYSQL_ROOT_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: docclear_backend
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env.production.example # Use real .env in prod
+    environment:
+      DB_HOST: db
+
+  frontend:
+    build: ./frontend
+    container_name: docclear_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
+

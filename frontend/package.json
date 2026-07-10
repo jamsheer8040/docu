@@ -1,0 +1,33 @@
+{
+  "name": "docclear-frontend",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev --host",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@fontsource/cormorant-garamond": "^5.2.11",
+    "@fontsource/sora": "^5.2.8",
+    "@pinia/nuxt": "^0.10.1",
+    "@vuelidate/core": "^2.0.3",
+    "@vuelidate/validators": "^2.0.4",
+    "apexcharts": "^5.10.4",
+    "axios": "^1.8.1",
+    "dayjs": "^1.11.13",
+    "nuxt": "^4.4.2",
+    "pinia": "^3.0.1",
+    "vue": "^3.5.31",
+    "vue-router": "^5.0.4",
+    "vue3-apexcharts": "^1.11.1",
+    "vuelidate": "^0.7.7",
+    "vuetify": "^3.7.15",
+    "vuetify-nuxt-module": "^0.18.3"
+  },
+  "devDependencies": {
+    "sass": "^1.85.1"
+  }
+}

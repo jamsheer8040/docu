@@ -1,0 +1,70 @@
+import { useAuthStore } from '~/stores/auth';
+import { useConfigStore } from '~/stores/config';
+
+export default defineNuxtRouteMiddleware((to, from) => {
+  if (import.meta.server) return;
+
+  const nuxtApp = useNuxtApp();
+  const authStore = useAuthStore(nuxtApp.$pinia);
+  const configStore = useConfigStore(nuxtApp.$pinia);
+
+  // License Expiry Check
+  // Allow login page, expired page, and developer to bypass expiry block
+  const bypassRoutes = ['/login', '/expired', '/developer'];
+  if (configStore.isExpired && !bypassRoutes.includes(to.path) && authStore.user?.role !== 'Developer') {
+     return navigateTo('/expired');
+  }
+
+  // Public pages that don't require authentication
+  const publicPages = ['/login'];
+  const authRequired = !publicPages.includes(to.path);
+
+  if (authRequired && !authStore.isAuthenticated) {
+    return navigateTo('/login');
+  }
+
+  if (to.path === '/login' && authStore.isAuthenticated) {
+    if (authStore.user?.role === 'Developer') {
+      return navigateTo('/developer');
+    }
+    if (authStore.user?.role_type === 'CustomerPortal') {
+      return navigateTo('/documents');
+    }
+    return navigateTo('/');
+  }
+
+  if (to.path === '/' && authStore.isAuthenticated && authStore.user?.role_type === 'CustomerPortal') {
+    return navigateTo('/documents');
+  }
+
+  // Developer Strict Access Guard
+  // A developer should ONLY be allowed on the /developer page.
+  if (authStore.isAuthenticated && authStore.user?.role === 'Developer' && to.path !== '/developer') {
+    return navigateTo('/developer');
+  }
+
+  // RBAC Check for protected routes
+  if (authRequired && authStore.isAuthenticated) {
+    const routePermissions: Record<string, string> = {
+      '/customers': 'customers',
+      '/documents': 'documents',
+      '/services': 'services',
+      '/invoices': 'invoices',
+      '/expenses': 'expenses',
+      '/wallet': 'wallet',
+      '/reports': 'reports',
+      '/settings': 'settings'
+    };
+
+    // Find if the current path (or any parent path) requires a permission
+    const requiredModule = Object.keys(routePermissions).find(path => to.path.startsWith(path));
+    
+    if (requiredModule) {
+      const moduleName = routePermissions[requiredModule];
+      if (!authStore.can(moduleName, 'read')) {
+        console.warn(`Access denied to ${to.path}. Missing ${moduleName} permission.`);
+        return navigateTo('/'); // Redirect to dashboard if no permission
+      }
+    }
+  }
+});

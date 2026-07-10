@@ -1,0 +1,24 @@
+features:
+  - node lts
+  - mysql
+
+commands:
+  - cd backend && npm install
+  - cd frontend && npm install && npm run build
+  - cd backend && npx sequelize-cli db:migrate
+
+nginx:
+  # Route API requests to the Backend (assumed to be running on 5000 internally)
+  locations:
+    - match: /api
+      proxy_pass: http://localhost:5000
+    - match: /uploads
+      proxy_pass: http://localhost:5000
+    
+    # Everything else goes to the Frontend (Nuxt SSR output)
+    - match: /
+      passenger:
+        enabled: "on"
+        app_type: node
+        startup_file: frontend/.output/server/index.mjs
+        app_env: production
