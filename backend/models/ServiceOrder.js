@@ -46,6 +46,14 @@ const ServiceOrder = sequelize.define('ServiceOrder', {
     type: DataTypes.INTEGER,
     defaultValue: 0,
     allowNull: false
+  },
+  tenant_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'tenants',
+      key: 'id'
+    }
   }
 }, {
   tableName: 'service_orders',

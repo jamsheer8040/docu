@@ -9,17 +9,16 @@ const ServiceType = sequelize.define('ServiceType', {
   },
   name: {
     type: DataTypes.STRING(150),
-    allowNull: false,
-    unique: true
+    allowNull: false
   },
   category: {
     type: DataTypes.STRING(100),
     allowNull: true
   },
-  sell_price: {
-    type: DataTypes.DECIMAL(12, 2),
+  pricing_mode: {
+    type: DataTypes.ENUM('Single', 'Multi'),
     allowNull: false,
-    defaultValue: 0.00
+    defaultValue: 'Single'
   },
   cost_price: {
     type: DataTypes.DECIMAL(12, 2),
@@ -33,11 +32,22 @@ const ServiceType = sequelize.define('ServiceType', {
   is_active: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  tenant_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'tenants',
+      key: 'id'
+    }
   }
 }, {
   tableName: 'service_types',
   timestamps: true,
-  underscored: true
+  underscored: true,
+  indexes: [
+    { unique: true, fields: ['name', 'tenant_id'] }
+  ]
 });
 
 module.exports = ServiceType;

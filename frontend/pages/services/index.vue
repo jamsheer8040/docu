@@ -493,7 +493,7 @@
       />
     </v-dialog>
 
-    <v-dialog v-model="invoiceDialog" max-width="1000px" persistent>
+    <v-dialog v-model="invoiceDialog" max-width="90vw" persistent>
       <InvoiceDialog
         v-if="invoiceDialog"
         :prefilled-service-order-id="prefilledServiceOrderId"

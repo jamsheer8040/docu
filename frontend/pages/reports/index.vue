@@ -1,15 +1,25 @@
 <template>
   <v-container fluid class="pa-6">
-    <!-- Header & Date Filter -->
+    <!-- Header & Tabs -->
     <v-row class="mb-6 align-center">
-      <v-col cols="12" md="5">
-        <h1 class="text-h4 font-weight-bold color-primary">
+      <v-col cols="12" md="5" class="d-flex align-center">
+        <h1 class="text-h4 font-weight-bold color-primary mr-6">
           <v-icon icon="mdi-chart-areaspline" class="mr-2" color="primary"></v-icon>
-          Insight & Analytics
+          Insights
         </h1>
-        <p class="text-subtitle-1 text-grey-darken-1">Analyze business growth, profitability, and cost structures</p>
+        <v-btn-toggle
+          v-model="activeMainTab"
+          color="primary"
+          mandatory
+          variant="outlined"
+          divided
+          density="comfortable"
+        >
+          <v-btn value="insights">Overview</v-btn>
+          <v-btn value="reports">More Reports</v-btn>
+        </v-btn-toggle>
       </v-col>
-      <v-col cols="12" md="7" class="d-flex align-center justify-md-end">
+      <v-col cols="12" md="7" class="d-flex align-center justify-md-end" v-if="activeMainTab === 'insights'">
         <div class="d-flex align-center flex-nowrap bg-white pa-1 rounded-lg border shadow-sm" style="gap: 8px; height: 48px;">
           <!-- Preset Selector -->
           <div class="d-flex align-center px-2 border-e">
@@ -67,128 +77,182 @@
       </v-col>
     </v-row>
 
-    <!-- Summary Cards -->
-    <v-row class="mb-8" align="stretch">
-      <v-col cols="12" sm="6" md="3" v-for="(stat, key) in summaryCards" :key="key">
-        <v-card class="pa-6 rounded-2xl border h-100" variant="flat">
-          <div class="d-flex align-center justify-space-between mb-4">
-            <v-avatar :color="stat.bgColor" rounded="lg" size="44" variant="flat">
-              <v-icon :icon="stat.icon" :color="stat.iconColor" size="24"></v-icon>
-            </v-avatar>
-            <div class="text-caption font-weight-bold text-uppercase ls-1 opacity-60">{{ stat.label }}</div>
-          </div>
-          <div class="text-h4 font-weight-black" :class="stat.colorClass">
-              <span v-if="stat.prefix" class="text-body-2 font-weight-medium mr-1">{{ stat.prefix }}</span>
-              {{ stat.value }}
-              <span v-if="stat.suffix" class="text-body-1 font-weight-medium ml-1">{{ stat.suffix }}</span>
-          </div>
-        </v-card>
-      </v-col>
-    </v-row>
-
-    <!-- Charts Section -->
-    <v-row class="mb-8">
-      <!-- Monthly Trends -->
-      <v-col cols="12" md="8">
-        <v-card class="pa-6 rounded-2xl border bg-surface" border variant="flat">
-          <div class="d-flex align-center mb-6">
-              <v-icon icon="mdi-trending-up" color="primary" class="mr-2"></v-icon>
-              <div class="text-h6 font-weight-bold">Monthly Financial Trends</div>
-          </div>
-          <client-only>
-            <apexchart
-                type="bar"
-                height="350"
-                :options="barChartOptions"
-                :series="barChartSeries"
-            ></apexchart>
-          </client-only>
-        </v-card>
-      </v-col>
-
-      <!-- Revenue by Service -->
-      <v-col cols="12" md="4">
-        <v-card class="pa-6 rounded-2xl border bg-surface" border variant="flat">
-          <div class="d-flex align-center mb-6">
-              <v-icon icon="mdi-chart-donut" color="secondary" class="mr-2"></v-icon>
-              <div class="text-h6 font-weight-bold">Revenue Breakdown</div>
-          </div>
-          <client-only>
-            <apexchart
-                type="donut"
-                height="400"
-                :options="donutChartOptions"
-                :series="donutChartSeries"
-            ></apexchart>
-          </client-only>
-        </v-card>
-      </v-col>
-    </v-row>
-
-    <!-- Detailed Leaderboards -->
-    <v-row>
-        <!-- Top Customers -->
-        <v-col cols="12" md="6">
-            <v-card class="rounded-2xl border bg-surface overflow-hidden" variant="flat">
-                <v-toolbar color="surface" border-b flat class="px-6">
-                    <span class="text-h6 font-weight-bold">Top Clients (Revenue)</span>
-                </v-toolbar>
-                <v-table v-if="reportStore.topCustomers.length">
-                    <thead>
-                        <tr>
-                            <th>Customer Name</th>
-                            <th class="text-center">Invoices</th>
-                            <th class="text-right">Total Invoiced</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="c in reportStore.topCustomers" :key="c.customer_id">
-                            <td class="font-weight-medium">{{ c.Customer?.name }}</td>
-                            <td class="text-center">{{ c.invoice_count }}</td>
-                            <td class="text-right font-weight-black color-primary">AED {{ parseFloat(c.total_invoiced).toLocaleString() }}</td>
-                        </tr>
-                    </tbody>
-                </v-table>
-                <div v-else class="pa-12">
-                    <EmptyState 
-                        title="No Customer Data" 
-                        subtitle="Top customers by revenue will appear here once invoices are paid." 
-                        icon="mdi-account-star-outline"
-                    />
-                </div>
+    <!-- INSIGHTS VIEW -->
+    <div v-show="activeMainTab === 'insights'">
+        <!-- Summary Cards -->
+        <v-row class="mb-8" align="stretch">
+          <v-col cols="12" sm="6" md="3" v-for="(stat, key) in summaryCards" :key="key">
+            <v-card class="pa-6 rounded-2xl border h-100" variant="flat">
+              <div class="d-flex align-center justify-space-between mb-4">
+                <v-avatar :color="stat.bgColor" rounded="lg" size="44" variant="flat">
+                  <v-icon :icon="stat.icon" :color="stat.iconColor" size="24"></v-icon>
+                </v-avatar>
+                <div class="text-caption font-weight-bold text-uppercase ls-1 opacity-60">{{ stat.label }}</div>
+              </div>
+              <div class="text-h4 font-weight-black" :class="stat.colorClass">
+                  <span v-if="stat.prefix" class="text-body-2 font-weight-medium mr-1">{{ stat.prefix }}</span>
+                  {{ stat.value }}
+                  <span v-if="stat.suffix" class="text-body-1 font-weight-medium ml-1">{{ stat.suffix }}</span>
+              </div>
             </v-card>
-        </v-col>
+          </v-col>
+        </v-row>
 
-        <!-- Expense by Category -->
-        <v-col cols="12" md="6">
-            <v-card class="rounded-2xl border bg-surface overflow-hidden" variant="flat">
-                <v-toolbar color="surface" border-b flat class="px-6">
-                    <span class="text-h6 font-weight-bold">Spending by Category</span>
-                </v-toolbar>
-                <v-table v-if="reportStore.expensesByCategory.length">
-                    <thead>
-                        <tr>
-                            <th>Category</th>
-                            <th class="text-right">Total Spent</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="e in reportStore.expensesByCategory" :key="e.category">
-                            <td class="font-weight-medium">{{ e.category || 'Uncategorized' }}</td>
-                            <td class="text-right font-weight-black text-error">AED {{ parseFloat(e.total_amount).toLocaleString() }}</td>
-                        </tr>
-                    </tbody>
-                </v-table>
-                <div v-else class="pa-12">
-                    <EmptyState 
-                        title="No Expense Data" 
-                        subtitle="Category-wise spending will appear here once expenses are logged." 
-                        icon="mdi-cart-outline"
-                    />
-                </div>
+        <!-- Charts Section -->
+        <v-row class="mb-8">
+          <!-- Monthly Trends -->
+          <v-col cols="12" md="8">
+            <v-card class="pa-6 rounded-2xl border bg-surface" border variant="flat">
+              <div class="d-flex align-center mb-6">
+                  <v-icon icon="mdi-trending-up" color="primary" class="mr-2"></v-icon>
+                  <div class="text-h6 font-weight-bold">Monthly Financial Trends</div>
+              </div>
+              <client-only>
+                <apexchart
+                    type="bar"
+                    height="350"
+                    :options="barChartOptions"
+                    :series="barChartSeries"
+                ></apexchart>
+              </client-only>
             </v-card>
-        </v-col>
-    </v-row>
+          </v-col>
+
+          <!-- Revenue by Service -->
+          <v-col cols="12" md="4">
+            <v-card class="pa-6 rounded-2xl border bg-surface" border variant="flat">
+              <div class="d-flex align-center mb-6">
+                  <v-icon icon="mdi-chart-donut" color="secondary" class="mr-2"></v-icon>
+                  <div class="text-h6 font-weight-bold">Revenue Breakdown</div>
+              </div>
+              <client-only>
+                <apexchart
+                    type="donut"
+                    height="400"
+                    :options="donutChartOptions"
+                    :series="donutChartSeries"
+                ></apexchart>
+              </client-only>
+            </v-card>
+          </v-col>
+        </v-row>
+
+        <!-- Detailed Leaderboards -->
+        <v-row>
+            <!-- Top Customers -->
+            <v-col cols="12" md="6">
+                <v-card class="rounded-2xl border bg-surface overflow-hidden" variant="flat">
+                    <v-toolbar color="surface" border-b flat class="px-6">
+                        <span class="text-h6 font-weight-bold">Top Clients (Revenue)</span>
+                    </v-toolbar>
+                    <v-table v-if="reportStore.topCustomers.length">
+                        <thead>
+                            <tr>
+                                <th>Customer Name</th>
+                                <th class="text-center">Invoices</th>
+                                <th class="text-right">Total Invoiced</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="c in reportStore.topCustomers" :key="c.customer_id">
+                                <td class="font-weight-medium">{{ c.Customer?.name }}</td>
+                                <td class="text-center">{{ c.invoice_count }}</td>
+                                <td class="text-right font-weight-black color-primary">AED {{ parseFloat(c.total_invoiced).toLocaleString() }}</td>
+                            </tr>
+                        </tbody>
+                    </v-table>
+                    <div v-else class="pa-12">
+                        <EmptyState 
+                            title="No Customer Data" 
+                            subtitle="Top customers by revenue will appear here once invoices are paid." 
+                            icon="mdi-account-star-outline"
+                        />
+                    </div>
+                </v-card>
+            </v-col>
+
+            <!-- Expense by Category -->
+            <v-col cols="12" md="6">
+                <v-card class="rounded-2xl border bg-surface overflow-hidden" variant="flat">
+                    <v-toolbar color="surface" border-b flat class="px-6">
+                        <span class="text-h6 font-weight-bold">Spending by Category</span>
+                    </v-toolbar>
+                    <v-table v-if="reportStore.expensesByCategory.length">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th class="text-right">Total Spent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="e in reportStore.expensesByCategory" :key="e.category">
+                                <td class="font-weight-medium">{{ e.category || 'Uncategorized' }}</td>
+                                <td class="text-right font-weight-black text-error">AED {{ parseFloat(e.total_amount).toLocaleString() }}</td>
+                            </tr>
+                        </tbody>
+                    </v-table>
+                    <div v-else class="pa-12">
+                        <EmptyState 
+                            title="No Expense Data" 
+                            subtitle="Category-wise spending will appear here once expenses are logged." 
+                            icon="mdi-cart-outline"
+                        />
+                    </div>
+                </v-card>
+            </v-col>
+        </v-row>
+    </div>
+
+    <!-- MORE REPORTS VIEW -->
+    <div v-if="activeMainTab === 'reports'">
+      <v-card class="border rounded-2xl bg-surface" variant="flat">
+        <!-- Sub Tabs for Reports -->
+        <v-tabs
+          v-model="activeReportTab"
+          color="primary"
+          class="px-4 pt-2 border-b"
+        >
+          <v-tab value="expense" class="text-none font-weight-bold">
+            <v-icon start color="error">mdi-cash-minus</v-icon>
+            Expense Report
+          </v-tab>
+          <v-tab value="invoice" class="text-none font-weight-bold">
+            <v-icon start color="primary">mdi-receipt-text</v-icon>
+            Invoice Report
+          </v-tab>
+          <v-tab value="profit" class="text-none font-weight-bold">
+            <v-icon start color="success">mdi-chart-line</v-icon>
+            Profit Report
+          </v-tab>
+          <v-tab value="service" class="text-none font-weight-bold">
+            <v-icon start color="purple">mdi-briefcase</v-icon>
+            Service-Wise Report
+          </v-tab>
+          <v-tab value="balance" class="text-none font-weight-bold">
+            <v-icon start color="secondary">mdi-scale-balance</v-icon>
+            Balance Sheet
+          </v-tab>
+        </v-tabs>
+
+        <v-window v-model="activeReportTab">
+          <v-window-item value="expense">
+            <ExpenseReport />
+          </v-window-item>
+          <v-window-item value="invoice">
+            <InvoiceReport />
+          </v-window-item>
+          <v-window-item value="profit">
+            <ProfitReport />
+          </v-window-item>
+          <v-window-item value="service">
+            <ServiceReport />
+          </v-window-item>
+          <v-window-item value="balance">
+            <BalanceSheetReport />
+          </v-window-item>
+        </v-window>
+      </v-card>
+    </div>
   </v-container>
 </template>
 
@@ -196,9 +260,18 @@
 import { ref, computed, onMounted } from 'vue';
 import { useReportStore } from '~/stores/reports';
 import EmptyState from '~/components/common/EmptyState.vue';
+import ExpenseReport from '~/components/reports/ExpenseReport.vue';
+import InvoiceReport from '~/components/reports/InvoiceReport.vue';
+import ProfitReport from '~/components/reports/ProfitReport.vue';
+import ServiceReport from '~/components/reports/ServiceReport.vue';
+import BalanceSheetReport from '~/components/reports/BalanceSheetReport.vue';
 import dayjs from 'dayjs';
 
 const reportStore = useReportStore();
+
+const activeMainTab = ref('insights');
+const activeReportTab = ref('expense');
+
 const activePreset = ref('This Month');
 const presets = ['Today', 'This Month', 'Financial Year', 'Custom'];
 
@@ -216,12 +289,11 @@ const applyPreset = (preset) => {
             to = today.format('YYYY-MM-DD');
             break;
         case 'Financial Year':
-            // Financial Year: Jan 1 to Dec 31
             from = today.startOf('year').format('YYYY-MM-DD');
             to = today.endOf('year').format('YYYY-MM-DD');
             break;
         default:
-            return; // Custom logic handled by text fields
+            return;
     }
 
     reportStore.filters.from = from;
@@ -268,11 +340,10 @@ const summaryCards = computed(() => ({
     }
 }));
 
-// Chart Configurations
 const barChartOptions = computed(() => ({
     chart: { id: 'monthly-trends', toolbar: { show: false } },
     xaxis: { categories: reportStore.trends.labels },
-    colors: ['#0B57D0', '#D32F2F'], // Primary vs Error
+    colors: ['#0B57D0', '#D32F2F'],
     plotOptions: { bar: { borderRadius: 6, columnWidth: '50%' } },
     dataLabels: { enabled: false },
     legend: { position: 'top' }
@@ -340,14 +411,10 @@ const refreshData = () => {
 .no-wrap {
   white-space: nowrap;
 }
-.preset-select :deep(.v-field__input) {
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  min-height: 32px !important;
-  font-size: 0.875rem;
+.date-input :deep(input) {
+    font-weight: 500;
 }
-.date-input :deep(.v-field__input) {
-  padding-top: 0 !important;
+.preset-select :deep(.v-field__input) {
   padding-bottom: 0 !important;
   min-height: 32px !important;
   font-size: 0.875rem;

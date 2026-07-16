@@ -33,5 +33,8 @@ exports.customerValidator = [
     .optional({ checkFalsy: true })
     .trim()
     .escape()
-    .isLength({ max: 500 })
+    .isLength({ max: 500 }),
+  body('pricing_category')
+    .optional()
+    .isIn(['Normal', 'Prime', 'Prime+']).withMessage('Invalid pricing category')
 ];

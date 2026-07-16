@@ -6,7 +6,7 @@ module.exports = {
     // Clear existing data to avoid validation/unique errors on rerun
     await queryInterface.sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
     // We use TRUNCATE to reset auto-increment counters on MySQL
-    const tables = ['wallet_transactions', 'expenses', 'invoice_items', 'invoices', 'service_orders', 'documents', 'service_types', 'customers', 'users', 'roles', 'wallet_accounts', 'system_configs'];
+    const tables = ['wallet_transactions', 'expenses', 'expense_sub_types', 'expense_types', 'invoice_items', 'invoices', 'service_orders', 'documents', 'service_types', 'customers', 'users', 'tenants', 'plans', 'roles', 'wallet_accounts', 'system_configs'];
     for (const table of tables) {
       await queryInterface.sequelize.query(`TRUNCATE TABLE ${table}`);
     }
@@ -52,13 +52,30 @@ module.exports = {
         }),
         created_at: now,
         updated_at: now
+      },
+      {
+        id: 3,
+        name: 'Developer',
+        permissions: JSON.stringify({}),
+        created_at: now,
+        updated_at: now
       }
+    ]);
+
+    // 1.5 Plans and Tenants
+    await queryInterface.bulkInsert('plans', [
+      { id: 1, name: 'Pro', price_monthly: 99.00, price_yearly: 990.00, max_users: 10, max_customers: -1, max_documents: -1, max_wallet_accounts: -1, features: JSON.stringify(['all']), is_active: true, created_at: now, updated_at: now }
+    ]);
+
+    await queryInterface.bulkInsert('tenants', [
+      { id: 1, name: 'Demo Company', plan_id: 1, status: 'active', subscription_ends_at: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000), created_at: now, updated_at: now }
     ]);
 
     // 2. Users
     await queryInterface.bulkInsert('users', [
-      { id: 1, name: 'Admin User', email: 'admin@docclear.com', password_hash: passwordHash, role_id: 1, is_active: true, created_at: now, updated_at: now },
-      { id: 2, name: 'Staff User', email: 'staff@docclear.com', password_hash: passwordHash, role_id: 2, is_active: true, created_at: now, updated_at: now }
+      { id: 1, name: 'Admin User', email: 'admin@docclear.com', password_hash: passwordHash, role_id: 1, tenant_id: 1, is_active: true, created_at: now, updated_at: now },
+      { id: 2, name: 'Staff User', email: 'staff@docclear.com', password_hash: passwordHash, role_id: 2, tenant_id: 1, is_active: true, created_at: now, updated_at: now },
+      { id: 3, name: 'Super Admin', email: 'developer@docclear.com', password_hash: passwordHash, role_id: 3, tenant_id: null, is_active: true, created_at: now, updated_at: now }
     ]);
 
     // 3. Wallet Accounts
@@ -103,13 +120,27 @@ module.exports = {
         updated_at: now
     })));
 
-    // 7. Expenses
+    // 7. Expense Types
+    await queryInterface.bulkInsert('expense_types', [
+      { id: 1, type_name: 'Utilities', description: 'Office utilities', status: 'Active', tenant_id: 1, created_at: now, updated_at: now },
+      { id: 2, type_name: 'Office Rent', description: 'Office rent', status: 'Active', tenant_id: 1, created_at: now, updated_at: now },
+      { id: 3, type_name: 'Supplies', description: 'Office supplies', status: 'Active', tenant_id: 1, created_at: now, updated_at: now }
+    ]);
+
+    await queryInterface.bulkInsert('expense_sub_types', [
+      { id: 1, sub_type_name: 'Electricity', expense_type_id: 1, status: 'Active', tenant_id: 1, created_at: now, updated_at: now },
+      { id: 2, sub_type_name: 'Water', expense_type_id: 1, status: 'Active', tenant_id: 1, created_at: now, updated_at: now },
+      { id: 3, sub_type_name: 'Monthly Rent', expense_type_id: 2, status: 'Active', tenant_id: 1, created_at: now, updated_at: now },
+      { id: 4, sub_type_name: 'Stationery', expense_type_id: 3, status: 'Active', tenant_id: 1, created_at: now, updated_at: now }
+    ]);
+
+    // 8. Expenses
     await queryInterface.bulkInsert('expenses', [
-      { id: 1, description: 'Office Electricity', category: 'Utilities', amount: 850.00, status: 'Paid', payment_date: lastMonth, account_id: 2, created_at: lastMonth, updated_at: lastMonth },
-      { id: 2, description: 'Water Bill', category: 'Utilities', amount: 150.00, status: 'Paid', payment_date: lastMonth, account_id: 1, created_at: lastMonth, updated_at: lastMonth },
-      { id: 3, description: 'Monthly Rent', category: 'Office Rent', amount: 5000.00, status: 'Paid', payment_date: twoMonthsAgo, account_id: 2, created_at: twoMonthsAgo, updated_at: twoMonthsAgo },
-      { id: 4, description: 'Office Rent (Current)', category: 'Office Rent', amount: 5000.00, status: 'Unpaid', created_at: now, updated_at: now },
-      { id: 5, description: 'Printing Stationery', category: 'Supplies', amount: 320.00, status: 'Unpaid', created_at: now, updated_at: now }
+      { id: 1, description: 'Office Electricity', expense_sub_type_id: 1, amount: 850.00, status: 'Paid', payment_date: lastMonth, account_id: 2, tenant_id: 1, created_at: lastMonth, updated_at: lastMonth },
+      { id: 2, description: 'Water Bill', expense_sub_type_id: 2, amount: 150.00, status: 'Paid', payment_date: lastMonth, account_id: 1, tenant_id: 1, created_at: lastMonth, updated_at: lastMonth },
+      { id: 3, description: 'Monthly Rent', expense_sub_type_id: 3, amount: 5000.00, status: 'Paid', payment_date: twoMonthsAgo, account_id: 2, tenant_id: 1, created_at: twoMonthsAgo, updated_at: twoMonthsAgo },
+      { id: 4, description: 'Office Rent (Current)', expense_sub_type_id: 3, amount: 5000.00, status: 'Unpaid', tenant_id: 1, created_at: now, updated_at: now },
+      { id: 5, description: 'Printing Stationery', expense_sub_type_id: 4, amount: 320.00, status: 'Unpaid', tenant_id: 1, created_at: now, updated_at: now }
     ]);
 
     // 8. Service Orders
@@ -157,11 +188,15 @@ module.exports = {
   down: async (queryInterface, Sequelize) => {
     await queryInterface.bulkDelete('wallet_transactions', null, {});
     await queryInterface.bulkDelete('expenses', null, {});
+    await queryInterface.bulkDelete('expense_sub_types', null, {});
+    await queryInterface.bulkDelete('expense_types', null, {});
     await queryInterface.bulkDelete('documents', null, {});
     await queryInterface.bulkDelete('customers', null, {});
     await queryInterface.bulkDelete('service_types', null, {});
     await queryInterface.bulkDelete('wallet_accounts', null, {});
     await queryInterface.bulkDelete('users', null, {});
+    await queryInterface.bulkDelete('tenants', null, {});
+    await queryInterface.bulkDelete('plans', null, {});
     await queryInterface.bulkDelete('roles', null, {});
   }
 };

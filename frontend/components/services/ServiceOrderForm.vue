@@ -95,13 +95,13 @@
             <div class="d-flex justify-space-between align-center">
               <div>
                 <div class="text-caption opacity-70">Client Price</div>
-                <div class="text-subtitle-1 font-weight-bold">AED {{ selectedService.sell_price }}</div>
+                <div class="text-subtitle-1 font-weight-bold">AED {{ calculatedPricing.selling_price }}</div>
               </div>
               <v-icon icon="mdi-arrow-right" size="small"></v-icon>
               <div class="text-right">
                 <div class="text-caption opacity-70">Estimated Profit</div>
                 <div class="text-subtitle-1 font-weight-bold text-success">
-                  + AED {{ (selectedService.sell_price - selectedService.cost_price).toFixed(2) }}
+                  + AED {{ calculatedPricing.profit }}
                 </div>
               </div>
             </div>
@@ -177,6 +177,36 @@ const v$ = useVuelidate(rules, state);
 const selectedService = computed(() => {
   if (!state.service_type_id) return null;
   return props.serviceTypes.find(s => s.id === state.service_type_id);
+});
+
+const selectedCustomer = computed(() => {
+  if (!state.customer_id) return null;
+  return customers.value.find(c => c.id === state.customer_id);
+});
+
+const calculatedPricing = computed(() => {
+  if (!selectedService.value) return { selling_price: 0, profit: 0 };
+  
+  const cost = parseFloat(selectedService.value.cost_price) || 0;
+  const pricings = selectedService.value.ServiceTypePricings || [];
+  
+  let targetPricing = null;
+  
+  if (selectedService.value.pricing_mode === 'Single') {
+    targetPricing = pricings.find(p => p.pricing_type === 'Single');
+  } else if (selectedCustomer.value) {
+    const customerCategory = selectedCustomer.value.pricing_category || 'Normal';
+    targetPricing = pricings.find(p => p.pricing_type === customerCategory);
+  }
+  
+  // Fallback to first pricing if not found
+  if (!targetPricing && pricings.length > 0) targetPricing = pricings[0];
+  
+  const selling = targetPricing ? parseFloat(targetPricing.selling_price) : cost;
+  return {
+    selling_price: selling.toFixed(2),
+    profit: (selling - cost).toFixed(2)
+  };
 });
 
 const fetchCustomers = async () => {

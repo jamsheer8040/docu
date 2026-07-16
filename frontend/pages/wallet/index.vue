@@ -62,25 +62,25 @@
 
     <!-- Detailed Account Breakdown -->
     <v-row class="mb-8">
-      <v-col v-for="account in walletStore.accounts" :key="account.id" cols="12" md="4">
-        <v-card variant="flat" class="pa-6 rounded-2xl border bg-surface account-card position-relative overflow-hidden">
+      <v-col v-for="account in walletStore.accounts" :key="account.id" cols="12" sm="6" md="3">
+        <v-card variant="flat" class="pa-4 rounded-xl border bg-surface account-card position-relative overflow-hidden">
           <div class="card-glow" :style="`background: ${account.balance < 0 ? 'rgba(186, 26, 26, 0.05)' : 'rgba(0, 107, 45, 0.05)'}`"></div>
           
-          <div class="d-flex align-center justify-space-between mb-4">
-            <div class="account-icon-wrapper rounded-xl" :class="account.name.toLowerCase().includes('cash') ? 'bg-primary-container' : 'bg-secondary-container'">
-                <v-icon :color="account.name.toLowerCase().includes('cash') ? 'primary' : 'secondary'">
+          <div class="d-flex align-center justify-space-between mb-3">
+            <div class="account-icon-wrapper-small rounded-lg" :class="account.name.toLowerCase().includes('cash') ? 'bg-primary-container' : 'bg-secondary-container'">
+                <v-icon size="small" :color="account.name.toLowerCase().includes('cash') ? 'primary' : 'secondary'">
                     {{ account.name.toLowerCase().includes('cash') ? 'mdi-cash-multiple' : 'mdi-bank' }}
                 </v-icon>
             </div>
-            <div class="d-flex align-center gap-2">
-              <v-chip size="x-small" :color="account.balance < 0 ? 'error' : 'success'" class="font-weight-bold">
+            <div class="d-flex align-center gap-1">
+              <v-chip size="x-small" :color="account.balance < 0 ? 'error' : 'success'" class="font-weight-bold" style="font-size: 10px; height: 18px;">
                   {{ account.balance < 0 ? 'DEBT' : 'POSITIVE' }}
               </v-chip>
               <v-btn
                 v-if="auth.can('wallet', 'write')"
                 icon="mdi-pencil"
                 variant="text"
-                size="small"
+                size="x-small"
                 color="grey-darken-1"
                 @click="openEditWallet(account)"
                 title="Edit Wallet Name"
@@ -88,17 +88,17 @@
             </div>
           </div>
 
-          <div class="text-subtitle-1 font-weight-bold opacity-60 text-uppercase">{{ account.name }}</div>
-          <div class="text-h4 font-weight-black mb-4">
-              <span class="text-subtitle-2 font-weight-medium opacity-50 mr-1">AED</span>
+          <div class="text-caption font-weight-bold opacity-60 text-uppercase mb-1">{{ account.name }}</div>
+          <div class="text-h6 font-weight-black mb-3">
+              <span class="text-caption font-weight-medium opacity-50 mr-1">AED</span>
               {{ account.balance.toLocaleString('en-US', { minimumFractionDigits: 2 }) }}
           </div>
 
-          <v-divider class="mb-4 opacity-10"></v-divider>
+          <v-divider class="mb-3 opacity-10"></v-divider>
           
           <div class="d-flex align-center justify-space-between">
-              <span class="text-caption opacity-60">Status: {{ account.is_active ? 'Active' : 'Archived' }}</span>
-              <v-btn variant="text" size="small" color="primary" class="font-weight-bold" @click="filterByAccount(account.id)">VIEW LEDGER</v-btn>
+              <span class="text-caption opacity-60" style="font-size: 11px !important;">Status: {{ account.is_active ? 'Active' : 'Archived' }}</span>
+              <v-btn variant="text" size="x-small" color="primary" class="font-weight-bold px-0" @click="filterByAccount(account.id)">VIEW LEDGER</v-btn>
           </div>
         </v-card>
       </v-col>
@@ -212,6 +212,18 @@
               density="comfortable"
               class="mt-2"
             ></v-text-field>
+            <v-text-field
+              v-if="!editingWallet"
+              v-model.number="walletData.opening_balance"
+              label="Opening Balance (Optional)"
+              type="number"
+              min="0"
+              step="0.01"
+              variant="outlined"
+              density="comfortable"
+              class="mt-2"
+              prefix="AED"
+            ></v-text-field>
           </v-form>
         </v-card-text>
         <v-card-actions class="pa-4 border-t">
@@ -304,7 +316,7 @@ const onTransferSuccess = () => {
 
 const openAddWallet = () => {
   editingWallet.value = null;
-  walletData.value = { name: '', description: '' };
+  walletData.value = { name: '', description: '', opening_balance: 0 };
   walletDialog.value = true;
 };
 
@@ -378,7 +390,14 @@ const getReferenceRoute = (item) => {
     width: 48px;
     height: 48px;
     display: flex;
-    align-center: center;
+    align-items: center;
+    justify-content: center;
+}
+.account-icon-wrapper-small {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
     justify-content: center;
 }
 .card-glow {

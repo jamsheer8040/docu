@@ -41,10 +41,23 @@ const Customer = sequelize.define('Customer', {
     type: DataTypes.TEXT,
     allowNull: true
   },
+  pricing_category: {
+    type: DataTypes.ENUM('Normal', 'Prime', 'Prime+'),
+    allowNull: false,
+    defaultValue: 'Normal'
+  },
   is_active: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: true
+  },
+  tenant_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'tenants',
+      key: 'id'
+    }
   }
 }, {
   tableName: 'customers',
@@ -52,7 +65,7 @@ const Customer = sequelize.define('Customer', {
   createdAt: 'created_at',
   updatedAt: 'updated_at',
   indexes: [
-    { unique: true, fields: ['email'] }
+    { unique: true, fields: ['email', 'tenant_id'] }
   ],
   hooks: {
     beforeValidate: (customer) => {

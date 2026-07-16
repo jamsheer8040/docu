@@ -45,7 +45,11 @@ exports.getTransactions = async (req, res) => {
   if (date_from || date_to) {
     where.created_at = {};
     if (date_from) where.created_at[Op.gte] = new Date(date_from);
-    if (date_to) where.created_at[Op.lte] = new Date(date_to);
+    if (date_to) {
+        const endDate = new Date(date_to);
+        endDate.setHours(23, 59, 59, 999);
+        where.created_at[Op.lte] = endDate;
+    }
   }
 
   try {
@@ -146,16 +150,39 @@ exports.getSummary = async (req, res) => {
 };
 
 exports.createAccount = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
-    const { name, description } = req.body;
-    if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
+    const { name, description, opening_balance } = req.body;
+    if (!name) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'Name is required' });
+    }
     
-    const existing = await WalletAccount.findOne({ where: { name } });
-    if (existing) return res.status(400).json({ success: false, message: 'Wallet name already exists' });
+    const existing = await WalletAccount.findOne({ where: { name }, transaction: t });
+    if (existing) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'Wallet name already exists' });
+    }
 
-    const account = await WalletAccount.create({ name, description });
-    res.status(201).json({ success: true, data: { ...account.toJSON(), balance: 0 } });
+    const account = await WalletAccount.create({ name, description }, { transaction: t });
+    
+    let balance = 0;
+    if (opening_balance && parseFloat(opening_balance) > 0) {
+      balance = parseFloat(opening_balance);
+      await WalletTransaction.create({
+        account_id: account.id,
+        type: 'Manual',
+        direction: 'In',
+        amount: balance,
+        description: 'Opening Balance'
+      }, { transaction: t });
+    }
+
+    await t.commit();
+    res.status(201).json({ success: true, data: { ...account.toJSON(), balance } });
   } catch (err) {
+    await t.rollback();
+    console.error('Error creating wallet account:', err);
     res.status(500).json({ success: false, message: 'Error creating wallet account.' });
   }
 };

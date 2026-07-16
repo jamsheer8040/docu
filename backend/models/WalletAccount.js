@@ -9,8 +9,7 @@ const WalletAccount = sequelize.define('WalletAccount', {
   },
   name: {
     type: DataTypes.STRING(100),
-    allowNull: false,
-    unique: true
+    allowNull: false
   },
   currency: {
     type: DataTypes.STRING(10),
@@ -30,12 +29,23 @@ const WalletAccount = sequelize.define('WalletAccount', {
     type: DataTypes.DECIMAL(12, 2),
     allowNull: false,
     defaultValue: 0.00
+  },
+  tenant_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'tenants',
+      key: 'id'
+    }
   }
 }, {
   tableName: 'wallet_accounts',
   timestamps: true,
   createdAt: 'created_at',
-  updatedAt: 'updated_at'
+  updatedAt: 'updated_at',
+  indexes: [
+    { unique: true, fields: ['name', 'tenant_id'] }
+  ]
 });
 
 module.exports = WalletAccount;

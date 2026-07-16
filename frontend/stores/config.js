@@ -5,7 +5,9 @@ export const useConfigStore = defineStore('config', {
     settings: {
       app_name: 'DocClear',
       app_logo: '',
-      license_expiry_date: null
+      license_expiry_date: null,
+      is_tax_enabled: false,
+      tax_registration_number: ''
     },
     loading: false
   }),
@@ -16,7 +18,9 @@ export const useConfigStore = defineStore('config', {
     isExpired: (state) => {
       if (!state.settings.license_expiry_date) return false;
       return new Date() > new Date(state.settings.license_expiry_date);
-    }
+    },
+    isTaxEnabled: (state) => state.settings.is_tax_enabled === 'true' || state.settings.is_tax_enabled === true,
+    taxRegistrationNumber: (state) => state.settings.tax_registration_number || ''
   },
 
   actions: {

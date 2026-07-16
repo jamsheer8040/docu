@@ -124,7 +124,7 @@ const handleLogin = async () => {
     
     if (result.success) {
       if (authStore.user?.role === 'Developer') {
-        router.push('/developer');
+        router.push('/saas-portal');
       } else {
         router.push('/');
       }

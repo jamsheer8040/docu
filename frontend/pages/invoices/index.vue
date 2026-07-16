@@ -54,7 +54,7 @@
            <v-col cols="6">
              <v-select
                 v-model="statusFilter"
-                :items="['All', 'Draft', 'Sent', 'Partially Paid', 'Paid', 'Cancelled']"
+                :items="['All', 'Draft', 'Issued', 'Partially Paid', 'Paid', 'Cancelled']"
                 label="Status Filter"
                 hide-details
                 density="comfortable"
@@ -126,8 +126,15 @@
               <v-list-item 
                 v-if="item.status === 'Draft' && auth.can('invoices', 'write')"
                 prepend-icon="mdi-pencil-outline" 
-                title="Edit Draft" 
+                title="Edit Invoice" 
                 @click="editInvoice(item)"
+              ></v-list-item>
+
+              <v-list-item 
+                v-if="item.status === 'Draft' && auth.can('invoices', 'write')"
+                prepend-icon="mdi-send-check-outline" 
+                title="Issue Invoice" 
+                @click="updateStatus(item, 'Issued')"
               ></v-list-item>
               
               <v-list-item 
@@ -137,7 +144,7 @@
               ></v-list-item>
 
               <v-list-item 
-                v-if="item.status !== 'Paid' && item.status !== 'Cancelled' && auth.can('invoices', 'write')"
+                v-if="item.status === 'Issued' || item.status === 'Partially Paid'"
                 prepend-icon="mdi-credit-card-plus-outline" 
                 title="Collect Payment" 
                 color="success"
@@ -232,7 +239,7 @@
     </v-dialog>
 
     <!-- Invoice Design Dialog (Manual Creation) -->
-    <v-dialog v-model="invoiceDialog" max-width="1000px" persistent>
+    <v-dialog v-model="invoiceDialog" max-width="90vw" persistent>
         <InvoiceDialog 
             v-if="invoiceDialog"
             :invoice="editableInvoice"
@@ -345,6 +352,15 @@ const openPayDialog = (invoice) => {
     paymentAmount.value = parseFloat(invoice.total) - parseFloat(invoice.paid_amount || 0);
     walletStore.fetchAccounts(); // Ensure accounts are loaded for the dropdown
     payDialog.value = true;
+};
+
+const updateStatus = async (invoice, newStatus) => {
+    try {
+        await invoiceStore.updateStatus(invoice.id, newStatus);
+        loadInvoices({ page: currentPage.value, itemsPerPage: itemsPerPage.value, search: search.value });
+    } catch (err) {
+        alert('Failed to update status');
+    }
 };
 
 const confirmPayment = async () => {

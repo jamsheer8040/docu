@@ -1,4 +1,4 @@
-const { ServiceType, ServiceOrder, Customer, Invoice, InvoiceItem, sequelize } = require('../models/index.js');
+const { ServiceType, ServiceTypePricing, ServiceOrder, Customer, Invoice, InvoiceItem, sequelize } = require('../models/index.js');
 const { Op } = require('sequelize');
 
 /**
@@ -16,6 +16,7 @@ exports.getServiceTypes = async (req, res, next) => {
 
     const { count, rows } = await ServiceType.findAndCountAll({ 
       where, 
+      include: [{ model: ServiceTypePricing }],
       limit: parseInt(limit),
       offset: parseInt(offset),
       order: [['name', 'ASC']] 
@@ -36,22 +37,54 @@ exports.getServiceTypes = async (req, res, next) => {
 };
 
 exports.createServiceType = async (req, res, next) => {
+  const transaction = await sequelize.transaction();
   try {
-    const type = await ServiceType.create(req.body);
-    res.status(201).json({ success: true, data: type });
+    const { pricing, ...typeData } = req.body;
+    const type = await ServiceType.create(typeData, { transaction });
+    
+    if (pricing && Array.isArray(pricing)) {
+      const pricingsToCreate = pricing.map(p => ({
+        ...p,
+        service_type_id: type.id
+      }));
+      await ServiceTypePricing.bulkCreate(pricingsToCreate, { transaction });
+    }
+    
+    await transaction.commit();
+    const fullType = await ServiceType.findByPk(type.id, { include: [ServiceTypePricing] });
+    res.status(201).json({ success: true, data: fullType });
   } catch (err) {
+    await transaction.rollback();
     next(err);
   }
 };
 
 exports.updateServiceType = async (req, res, next) => {
+  const transaction = await sequelize.transaction();
   try {
     const type = await ServiceType.findByPk(req.params.id);
-    if (!type) return res.status(404).json({ success: false, message: 'Service type not found' });
+    if (!type) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'Service type not found' });
+    }
 
-    await type.update(req.body);
-    res.json({ success: true, data: type });
+    const { pricing, ...typeData } = req.body;
+    await type.update(typeData, { transaction });
+
+    if (pricing && Array.isArray(pricing)) {
+      await ServiceTypePricing.destroy({ where: { service_type_id: type.id }, transaction });
+      const pricingsToCreate = pricing.map(p => ({
+        ...p,
+        service_type_id: type.id
+      }));
+      await ServiceTypePricing.bulkCreate(pricingsToCreate, { transaction });
+    }
+
+    await transaction.commit();
+    const fullType = await ServiceType.findByPk(type.id, { include: [ServiceTypePricing] });
+    res.json({ success: true, data: fullType });
   } catch (err) {
+    await transaction.rollback();
     next(err);
   }
 };
@@ -103,7 +136,11 @@ exports.getServiceOrders = async (req, res, next) => {
       where,
       include: [
         { model: Customer, attributes: ['id', 'name', 'phone_whatsapp'] },
-        { model: ServiceType, attributes: ['id', 'name', 'sell_price', 'cost_price'] },
+        { 
+          model: ServiceType, 
+          attributes: ['id', 'name', 'pricing_mode', 'cost_price'],
+          include: [{ model: ServiceTypePricing }]
+        },
         { model: Invoice, attributes: ['id', 'invoice_number', 'status'] }
       ],
       limit: parseInt(limit),
@@ -136,7 +173,11 @@ exports.createServiceOrder = async (req, res, next) => {
     const fullOrder = await ServiceOrder.findByPk(order.id, {
       include: [
         { model: Customer, attributes: ['id', 'name', 'phone_whatsapp'] },
-        { model: ServiceType, attributes: ['id', 'name', 'sell_price', 'cost_price'] },
+        { 
+          model: ServiceType, 
+          attributes: ['id', 'name', 'pricing_mode', 'cost_price'],
+          include: [{ model: ServiceTypePricing }]
+        },
         { model: Invoice, attributes: ['id', 'invoice_number', 'status'] }
       ]
     });
@@ -151,7 +192,10 @@ exports.updateServiceOrderStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
     const order = await ServiceOrder.findByPk(req.params.id, {
-      include: [ServiceType, Customer],
+      include: [
+        { model: ServiceType, include: [{ model: ServiceTypePricing }] },
+        Customer
+      ],
       transaction
     });
 
@@ -220,7 +264,11 @@ exports.updateServiceOrderStatus = async (req, res, next) => {
     const updatedOrder = await ServiceOrder.findByPk(order.id, {
       include: [
         { model: Customer, attributes: ['id', 'name', 'phone_whatsapp'] },
-        { model: ServiceType, attributes: ['id', 'name', 'sell_price', 'cost_price'] },
+        { 
+          model: ServiceType, 
+          attributes: ['id', 'name', 'pricing_mode', 'cost_price'],
+          include: [{ model: ServiceTypePricing }]
+        },
         { model: Invoice, attributes: ['id', 'invoice_number', 'status'] }
       ]
     });
@@ -305,7 +353,11 @@ exports.updateServiceOrder = async (req, res, next) => {
     const fullOrder = await ServiceOrder.findByPk(order.id, {
       include: [
         { model: Customer, attributes: ['id', 'name', 'phone_whatsapp'] },
-        { model: ServiceType, attributes: ['id', 'name', 'sell_price', 'cost_price'] },
+        { 
+          model: ServiceType, 
+          attributes: ['id', 'name', 'pricing_mode', 'cost_price'],
+          include: [{ model: ServiceTypePricing }]
+        },
         { model: Invoice, attributes: ['id', 'invoice_number', 'status'] }
       ]
     });

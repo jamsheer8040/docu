@@ -26,8 +26,23 @@ exports.createInvoiceValidator = [
     .withMessage('Item quantity must be greater than 0'),
   
   body('items.*.unit_price')
+    .optional({ checkFalsy: true })
     .isFloat({ min: 0 })
     .withMessage('Item unit price must be 0 or more'),
+
+  body('items.*.wallet_id')
+    .optional({ nullable: true })
+    .custom((value, { req, path }) => {
+      const match = path.match(/items\[(\d+)\]\.wallet_id/);
+      if (match) {
+        const index = match[1];
+        const item = req.body.items[index];
+        if (parseFloat(item.cost_price || 0) > 0 && !value) {
+          throw new Error('Wallet must be selected if cost price is greater than 0');
+        }
+      }
+      return true;
+    }),
   
   body('discount')
     .optional({ checkFalsy: true })
@@ -47,7 +62,7 @@ exports.createInvoiceValidator = [
 
 exports.updateInvoiceStatusValidator = [
   body('status')
-    .isIn(['Draft', 'Sent', 'Partially Paid', 'Paid', 'Overdue', 'Cancelled'])
+    .isIn(['Draft', 'Pending Approval', 'Approved', 'Issued', 'Partially Paid', 'Paid', 'Cancelled'])
     .withMessage('Invalid status'),
   
   body('account_id')

@@ -148,10 +148,10 @@
         <template v-slot:item.category="{ item }">
           <div class="d-flex flex-column gap-1 align-start">
             <v-chip size="x-small" variant="outlined" color="primary-light">
-              {{ item.category || 'Uncategorized' }}
+              {{ item.SubType?.ParentType?.type_name || 'Uncategorized' }}
             </v-chip>
-            <div v-if="item.sub_category" class="text-caption text-grey">
-              {{ item.sub_category }}
+            <div v-if="item.SubType" class="text-caption text-grey">
+              {{ item.SubType.sub_type_name }}
             </div>
           </div>
         </template>

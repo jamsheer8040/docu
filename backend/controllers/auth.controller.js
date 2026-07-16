@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
-const { User, Role, Customer } = require('../models');
+const { User, Role, Customer, Tenant, Plan, WalletAccount, SystemConfig, sequelize } = require('../models');
 
 /**
  * Handle user login
@@ -18,7 +18,12 @@ exports.login = async (req, res) => {
       where: { email, is_active: true },
       include: [
         { model: Role, attributes: ['name', 'permissions', 'type'] },
-        { model: Customer, as: 'LinkedCustomers', attributes: ['id', 'name'] }
+        { model: Customer, as: 'LinkedCustomers', attributes: ['id', 'name'] },
+        { 
+          model: Tenant, 
+          attributes: ['id', 'name', 'status', 'subscription_ends_at', 'subscription_starts_at', 'trial_ends_at', 'billing_cycle', 'next_billing_date'],
+          include: [{ model: Plan }]
+        }
       ]
     });
     
@@ -30,7 +35,7 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.Role?.name || 'Staff' },
+      { id: user.id, email: user.email, role: user.Role?.name || 'Staff', tenant_id: user.tenant_id },
       process.env.JWT_SECRET,
       { expiresIn: '15m' } // Short-lived access token
     );
@@ -61,6 +66,7 @@ exports.login = async (req, res) => {
           role: user.Role?.name || 'Staff',
           role_type: user.Role?.type || 'Internal',
           LinkedCustomers: user.LinkedCustomers || [],
+          Tenant: user.Tenant || null,
           permissions: typeof user.Role?.permissions === 'string' 
             ? JSON.parse(user.Role.permissions || '{}') 
             : (user.Role?.permissions || {})
@@ -125,6 +131,7 @@ exports.me = async (req, res) => {
       role: req.user.Role?.name || 'No Role',
       role_type: req.user.Role?.type || 'Internal',
       LinkedCustomers: req.user.LinkedCustomers || [],
+      Tenant: req.user.Tenant || null,
       permissions: typeof req.user.Role?.permissions === 'string'
         ? JSON.parse(req.user.Role.permissions || '{}')
         : (req.user.Role?.permissions || {})
@@ -146,7 +153,12 @@ exports.refresh = async (req, res) => {
     const user = await User.findByPk(decoded.id, {
       include: [
         { model: Role, attributes: ['name', 'permissions', 'type'] },
-        { model: Customer, as: 'LinkedCustomers', attributes: ['id', 'name'] }
+        { model: Customer, as: 'LinkedCustomers', attributes: ['id', 'name'] },
+        { 
+          model: Tenant, 
+          attributes: ['id', 'name', 'status', 'subscription_ends_at', 'subscription_starts_at', 'trial_ends_at', 'billing_cycle', 'next_billing_date'],
+          include: [{ model: Plan }]
+        }
       ]
     });
 
@@ -155,7 +167,7 @@ exports.refresh = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.Role?.name || 'Staff' },
+      { id: user.id, email: user.email, role: user.Role?.name || 'Staff', tenant_id: user.tenant_id },
       process.env.JWT_SECRET,
       { expiresIn: '15m' }
     );
@@ -171,6 +183,7 @@ exports.refresh = async (req, res) => {
           role: user.Role?.name || 'Staff',
           role_type: user.Role?.type || 'Internal',
           LinkedCustomers: user.LinkedCustomers || [],
+          Tenant: user.Tenant || null,
           permissions: typeof user.Role?.permissions === 'string'
             ? JSON.parse(user.Role.permissions || '{}')
             : (user.Role?.permissions || {})
@@ -220,5 +233,196 @@ exports.changePassword = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+};
+
+/**
+ * Get active subscription plans for public registration
+ */
+exports.getPublicPlans = async (req, res) => {
+  try {
+    const plans = await Plan.findAll({ where: { is_active: true }, order: [['price_monthly', 'ASC']] });
+    res.json({ success: true, data: plans });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error fetching plans.' });
+  }
+};
+
+/**
+ * Register a new Tenant (SaaS self-service onboarding)
+ */
+exports.registerTenant = async (req, res) => {
+  const { companyName, slug, name, email, password, planId, billingCycle } = req.body;
+
+  if (!companyName || !slug || !name || !email || !password || !planId || !billingCycle) {
+    return res.status(400).json({ success: false, message: 'All fields are required.' });
+  }
+
+  const slugRegex = /^[a-z0-9-]+$/;
+  if (!slugRegex.test(slug)) {
+    return res.status(400).json({ success: false, message: 'Slug can only contain lowercase letters, numbers, and dashes.' });
+  }
+
+  const transaction = await sequelize.transaction();
+
+  try {
+    // 1. Verify slug uniqueness
+    const existingTenant = await Tenant.findOne({ where: { slug }, transaction });
+    if (existingTenant) {
+      return res.status(400).json({ success: false, message: 'Subdomain/slug is already taken.' });
+    }
+
+    // 2. Verify email uniqueness
+    const existingUser = await User.findOne({ where: { email }, transaction });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'Email address is already in use.' });
+    }
+
+    // 3. Verify plan exists
+    const plan = await Plan.findByPk(planId, { transaction });
+    if (!plan) {
+      return res.status(404).json({ success: false, message: 'Selected subscription plan not found.' });
+    }
+
+    // 4. Create Tenant
+    const tenant = await Tenant.create({
+      name: companyName,
+      slug,
+      plan_id: planId,
+      status: 'new_registration',
+      billing_cycle: billingCycle
+    }, { transaction });
+
+    // Insert history
+    await sequelize.models.TenantHistory.create({
+      tenant_id: tenant.id,
+      action: 'Registration',
+      old_status: null,
+      new_status: 'new_registration',
+      plan_id: planId
+    }, { transaction });
+
+    // 5. Create Default Roles for new Tenant
+    const fullPermissions = {
+      dashboard: { read: true, write: true, delete: true },
+      customers: { read: true, write: true, delete: true },
+      documents: { read: true, write: true, delete: true },
+      services: { read: true, write: true, delete: true },
+      invoices: { read: true, write: true, delete: true },
+      expenses: { read: true, write: true, delete: true },
+      wallet: { read: true, write: true, delete: true },
+      reports: { read: true, write: true, delete: true },
+      settings: { read: true, write: true, delete: true },
+      financials: { read: true, write: true, delete: true }
+    };
+
+    const adminRole = await Role.create({
+      name: 'Admin',
+      permissions: fullPermissions,
+      tenant_id: tenant.id
+    }, { transaction });
+
+    await Role.create({
+      name: 'Staff',
+      permissions: {
+        dashboard: { read: true, write: false, delete: false },
+        customers: { read: true, write: true, delete: false },
+        documents: { read: true, write: true, delete: false },
+        services: { read: true, write: true, delete: false },
+        invoices: { read: true, write: true, delete: false },
+        expenses: { read: false, write: false, delete: false },
+        wallet: { read: false, write: false, delete: false },
+        reports: { read: false, write: false, delete: false },
+        settings: { read: false, write: false, delete: false },
+        financials: { read: false, write: false, delete: false }
+      },
+      tenant_id: tenant.id
+    }, { transaction });
+
+    await Role.create({
+      name: 'Customer',
+      type: 'CustomerPortal',
+      permissions: {
+        dashboard: { read: false, write: false, delete: false },
+        customers: { read: false, write: false, delete: false },
+        documents: { read: true, write: false, delete: false },
+        services: { read: false, write: false, delete: false },
+        invoices: { read: false, write: false, delete: false },
+        expenses: { read: false, write: false, delete: false },
+        wallet: { read: false, write: false, delete: false },
+        reports: { read: false, write: false, delete: false },
+        settings: { read: false, write: false, delete: false },
+        financials: { read: false, write: false, delete: false }
+      },
+      tenant_id: tenant.id
+    }, { transaction });
+
+    // 6. Create Admin User
+    const user = await User.create({
+      name,
+      email,
+      password_hash: password,
+      role_id: adminRole.id,
+      tenant_id: tenant.id,
+      is_active: true
+    }, { transaction });
+
+    // 7. Create Default Wallet Accounts
+    await WalletAccount.create({
+      name: 'Cash',
+      currency: 'AED',
+      description: 'Default Cash Account',
+      tenant_id: tenant.id,
+      balance: 0.00
+    }, { transaction });
+
+    await WalletAccount.create({
+      name: 'Bank',
+      currency: 'AED',
+      description: 'Default Bank Account',
+      tenant_id: tenant.id,
+      balance: 0.00
+    }, { transaction });
+
+    // 8. Create Default System Configs
+    const defaultConfig = [
+      { key: 'business_name', value: companyName },
+      { key: 'app_name', value: 'DocClear' },
+      { key: 'app_logo', value: '' },
+      { key: 'base_currency', value: 'AED' },
+      { key: 'contact_email', value: email },
+      { key: 'default_language', value: 'English' }
+    ];
+
+    for (const item of defaultConfig) {
+      await SystemConfig.create({
+        key: item.key,
+        value: item.value,
+        tenant_id: tenant.id
+      }, { transaction });
+    }
+
+    await transaction.commit();
+
+    res.status(201).json({
+      success: true,
+      message: 'Tenant and Admin user created successfully. You can now log in.',
+      data: {
+        tenant: {
+          id: tenant.id,
+          name: tenant.name,
+          slug: tenant.slug
+        },
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email
+        }
+      }
+    });
+  } catch (err) {
+    await transaction.rollback();
+    console.error('[Tenant Registration Error]', err);
+    res.status(500).json({ success: false, message: 'Error registering tenant: ' + err.message });
   }
 };

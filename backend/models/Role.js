@@ -32,6 +32,14 @@ const Role = sequelize.define('Role', {
     type: DataTypes.ENUM('Internal', 'CustomerPortal'),
     allowNull: false,
     defaultValue: 'Internal'
+  },
+  tenant_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'tenants',
+      key: 'id'
+    }
   }
 }, {
   tableName: 'roles',

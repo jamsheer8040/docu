@@ -1,6 +1,8 @@
 const Expense = require('../models/Expense');
 const WalletTransaction = require('../models/WalletTransaction');
 const WalletAccount = require('../models/WalletAccount');
+const ExpenseSubType = require('../models/ExpenseSubType');
+const ExpenseType = require('../models/ExpenseType');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
 
@@ -16,12 +18,16 @@ exports.listExpenses = async (req, res) => {
     const whereClause = {};
 
     if (status) whereClause.status = status;
-    if (category) whereClause.category = category;
+    if (req.query.expense_sub_type_id) whereClause.expense_sub_type_id = req.query.expense_sub_type_id;
     
     if (date_from || date_to) {
       whereClause.created_at = {};
       if (date_from) whereClause.created_at[Op.gte] = new Date(date_from);
-      if (date_to) whereClause.created_at[Op.lte] = new Date(date_to);
+      if (date_to) {
+        const endDate = new Date(date_to);
+        endDate.setHours(23, 59, 59, 999);
+        whereClause.created_at[Op.lte] = endDate;
+      }
     }
 
     if (search) {
@@ -31,7 +37,13 @@ exports.listExpenses = async (req, res) => {
     const { count, rows } = await Expense.findAndCountAll({
       where: whereClause,
       include: [
-        { model: WalletAccount, attributes: ['id', 'name'] }
+        { model: WalletAccount, attributes: ['id', 'name'] },
+        { 
+            model: ExpenseSubType, 
+            as: 'SubType', 
+            attributes: ['id', 'sub_type_name'],
+            include: [{ model: ExpenseType, as: 'ParentType', attributes: ['id', 'type_name'] }]
+        }
       ],
       limit: parseInt(limit),
       offset: parseInt(offset),
@@ -62,7 +74,15 @@ exports.listExpenses = async (req, res) => {
 exports.getExpense = async (req, res) => {
   try {
     const expense = await Expense.findByPk(req.params.id, {
-      include: [{ model: WalletAccount, attributes: ['id', 'name'] }]
+      include: [
+        { model: WalletAccount, attributes: ['id', 'name'] },
+        { 
+            model: ExpenseSubType, 
+            as: 'SubType', 
+            attributes: ['id', 'sub_type_name'],
+            include: [{ model: ExpenseType, as: 'ParentType', attributes: ['id', 'type_name'] }]
+        }
+      ]
     });
     if (!expense) return res.status(404).json({ success: false, message: 'Expense not found' });
     res.json({ success: true, data: expense });
@@ -76,7 +96,7 @@ exports.getExpense = async (req, res) => {
  */
 exports.createExpense = async (req, res) => {
   try {
-    const { description, category, sub_category, amount, status, payment_date, account_id, notes } = req.body;
+    const { description, expense_sub_type_id, amount, status, payment_date, account_id, notes } = req.body;
     
     if (status === 'Paid' && !account_id) {
         return res.status(400).json({ success: false, message: 'Account is required for Paid status' });
@@ -86,13 +106,13 @@ exports.createExpense = async (req, res) => {
     try {
         const expense = await Expense.create({
             description,
-            category,
-            sub_category,
+            expense_sub_type_id,
             amount,
             status,
             payment_date: status === 'Paid' ? (payment_date || new Date()) : null,
             account_id,
-            notes
+            notes,
+            tenant_id: req.user.tenant_id || 1
         }, { transaction });
 
         if (status === 'Paid') {
@@ -160,7 +180,8 @@ exports.updateExpense = async (req, res) => {
             } 
             // Generic Update
             else {
-                await expense.update(req.body, { transaction });
+                let updateData = { ...req.body };
+                await expense.update(updateData, { transaction });
             }
 
             await transaction.commit();

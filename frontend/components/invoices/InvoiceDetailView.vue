@@ -30,6 +30,37 @@
     </v-toolbar>
 
     <v-card-text class="pa-10 bg-grey-lighten-4" style="max-height: 75vh; overflow-y: auto;">
+      <!-- Internal View Metrics (Not printed on PDF) -->
+      <v-alert
+        v-if="currentInvoice"
+        color="info"
+        variant="tonal"
+        class="mb-6 mx-auto"
+        max-width="800"
+        border="start"
+      >
+        <template v-slot:title>
+          <div class="text-subtitle-1 font-weight-bold d-flex align-center">
+             <v-icon icon="mdi-shield-lock-outline" class="mr-2"></v-icon>
+             Internal Financial View
+          </div>
+        </template>
+        <v-row class="mt-2" dense>
+          <v-col cols="4">
+            <div class="text-caption opacity-80">Total Revenue (Selling Price)</div>
+            <div class="font-weight-bold">AED {{ parseFloat(currentInvoice.subtotal || 0).toFixed(2) }}</div>
+          </v-col>
+          <v-col cols="4">
+            <div class="text-caption opacity-80">Total Cost (Government Fees)</div>
+            <div class="font-weight-bold text-error">AED {{ parseFloat(currentInvoice.cost_total || 0).toFixed(2) }}</div>
+          </v-col>
+          <v-col cols="4">
+            <div class="text-caption opacity-80">Net Profit (Service Charge)</div>
+            <div class="font-weight-bold text-success">AED {{ (parseFloat(currentInvoice.subtotal || 0) - parseFloat(currentInvoice.cost_total || 0)).toFixed(2) }}</div>
+          </v-col>
+        </v-row>
+      </v-alert>
+
       <!-- Invoice Canvas (Mimics A4) -->
       <v-card class="mx-auto pa-10 shadow-lg invoice-canvas" max-width="800" elevation="1">
         <!-- Branding -->

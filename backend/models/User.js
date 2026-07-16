@@ -37,6 +37,14 @@ const User = sequelize.define('User', {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: true
+  },
+  tenant_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'tenants',
+      key: 'id'
+    }
   }
 }, {
   tableName: 'users',

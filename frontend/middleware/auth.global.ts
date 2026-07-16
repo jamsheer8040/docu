@@ -10,13 +10,13 @@ export default defineNuxtRouteMiddleware((to, from) => {
 
   // License Expiry Check
   // Allow login page, expired page, and developer to bypass expiry block
-  const bypassRoutes = ['/login', '/expired', '/developer'];
+  const bypassRoutes = ['/login', '/expired', '/developer', '/saas-portal'];
   if (configStore.isExpired && !bypassRoutes.includes(to.path) && authStore.user?.role !== 'Developer') {
      return navigateTo('/expired');
   }
 
   // Public pages that don't require authentication
-  const publicPages = ['/login'];
+  const publicPages = ['/login', '/register'];
   const authRequired = !publicPages.includes(to.path);
 
   if (authRequired && !authStore.isAuthenticated) {
@@ -25,7 +25,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
 
   if (to.path === '/login' && authStore.isAuthenticated) {
     if (authStore.user?.role === 'Developer') {
-      return navigateTo('/developer');
+      return navigateTo('/saas-portal');
     }
     if (authStore.user?.role_type === 'CustomerPortal') {
       return navigateTo('/documents');
@@ -38,9 +38,9 @@ export default defineNuxtRouteMiddleware((to, from) => {
   }
 
   // Developer Strict Access Guard
-  // A developer should ONLY be allowed on the /developer page.
-  if (authStore.isAuthenticated && authStore.user?.role === 'Developer' && to.path !== '/developer') {
-    return navigateTo('/developer');
+  // A developer should ONLY be allowed on the /developer and /saas-portal pages.
+  if (authStore.isAuthenticated && authStore.user?.role === 'Developer' && !['/developer', '/saas-portal'].includes(to.path)) {
+    return navigateTo('/saas-portal');
   }
 
   // RBAC Check for protected routes

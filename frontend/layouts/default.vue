@@ -243,6 +243,61 @@
     <!-- Main Content -->
     <v-main>
       <v-container fluid class="pa-0">
+        <!-- Tenant Status Banners -->
+        <v-alert
+          v-if="authStore.user?.Tenant?.status === 'new_registration'"
+          type="info"
+          variant="flat"
+          class="rounded-0 text-center font-weight-bold"
+        >
+          Account Approval Pending. Our team will review and approve your account.
+        </v-alert>
+
+        <v-alert
+          v-if="authStore.user?.Tenant?.status === 'trial'"
+          type="primary"
+          variant="flat"
+          class="rounded-0 text-center font-weight-bold"
+        >
+          <div class="d-flex flex-column flex-md-row align-center justify-center gap-4">
+            <span><strong>Status:</strong> TRIAL</span>
+            <span><strong>Started:</strong> {{ authStore.user.Tenant.subscription_starts_at ? new Date(authStore.user.Tenant.subscription_starts_at).toLocaleDateString() : 'N/A' }}</span>
+            <span><strong>Expires:</strong> {{ new Date(authStore.user.Tenant.trial_ends_at).toLocaleDateString() }}</span>
+            <v-chip size="small" color="white" text-color="primary" class="font-weight-black ml-md-2">
+              {{ Math.max(0, Math.ceil((new Date(authStore.user.Tenant.trial_ends_at) - new Date()) / (1000 * 60 * 60 * 24))) }} Days Remaining
+            </v-chip>
+          </div>
+        </v-alert>
+
+
+
+        <v-alert
+          v-if="authStore.user?.Tenant?.status === 'trial_expired'"
+          type="error"
+          variant="flat"
+          class="rounded-0 text-center font-weight-bold"
+        >
+          Trial Period Expired. Please contact support or select a subscription package to continue.
+        </v-alert>
+
+        <v-alert
+          v-if="authStore.user?.Tenant?.status === 'expired'"
+          type="error"
+          variant="flat"
+          class="rounded-0 text-center font-weight-bold"
+        >
+          Your subscription has expired. Please renew your plan.
+        </v-alert>
+        
+        <v-alert
+          v-if="['suspended', 'cancelled'].includes(authStore.user?.Tenant?.status)"
+          type="error"
+          variant="flat"
+          class="rounded-0 text-center font-weight-bold"
+        >
+          Your organization has been suspended. Transactions are blocked.
+        </v-alert>
+
         <slot />
       </v-container>
     </v-main>

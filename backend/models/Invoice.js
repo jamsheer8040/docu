@@ -9,8 +9,7 @@ const Invoice = sequelize.define('Invoice', {
   },
   invoice_number: {
     type: DataTypes.STRING(50),
-    allowNull: false,
-    unique: true
+    allowNull: false
   },
   customer_id: {
     type: DataTypes.BIGINT,
@@ -51,8 +50,13 @@ const Invoice = sequelize.define('Invoice', {
     defaultValue: 0.00
   },
   status: {
-    type: DataTypes.ENUM('Draft', 'Sent', 'Partially Paid', 'Paid', 'Overdue', 'Cancelled'),
+    type: DataTypes.ENUM('Draft', 'Pending Approval', 'Approved', 'Issued', 'Partially Paid', 'Paid', 'Overdue', 'Cancelled'),
     defaultValue: 'Draft',
+    allowNull: false
+  },
+  payment_status: {
+    type: DataTypes.ENUM('Unpaid', 'Partial', 'Paid'),
+    defaultValue: 'Unpaid',
     allowNull: false
   },
   due_date: {
@@ -66,6 +70,14 @@ const Invoice = sequelize.define('Invoice', {
   notes: {
     type: DataTypes.TEXT,
     allowNull: true
+  },
+  tenant_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'tenants',
+      key: 'id'
+    }
   }
 }, {
   tableName: 'invoices',
@@ -74,7 +86,8 @@ const Invoice = sequelize.define('Invoice', {
   indexes: [
     { fields: ['customer_id'] },
     { fields: ['status'] },
-    { fields: ['created_at'] }
+    { fields: ['created_at'] },
+    { unique: true, fields: ['invoice_number', 'tenant_id'] }
   ]
 });
 

@@ -347,7 +347,7 @@
     </v-dialog>
 
     <!-- Add Invoice Dialog -->
-    <v-dialog v-model="addInvoiceDialog" max-width="900px" persistent>
+    <v-dialog v-model="addInvoiceDialog" max-width="90vw" persistent>
       <InvoiceDialog 
         v-if="addInvoiceDialog"
         :prefilled-customer-id="customer.id"

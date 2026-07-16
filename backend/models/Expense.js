@@ -11,13 +11,13 @@ const Expense = sequelize.define('Expense', {
     type: DataTypes.STRING(255),
     allowNull: false
   },
-  category: {
-    type: DataTypes.STRING(100),
-    allowNull: true
-  },
-  sub_category: {
-    type: DataTypes.STRING(100),
-    allowNull: true
+  expense_sub_type_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'expense_sub_types',
+      key: 'id'
+    }
   },
   amount: {
     type: DataTypes.DECIMAL(12, 2),
@@ -49,6 +49,14 @@ const Expense = sequelize.define('Expense', {
   notes: {
     type: DataTypes.TEXT,
     allowNull: true
+  },
+  tenant_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'tenants',
+      key: 'id'
+    }
   }
 }, {
   tableName: 'expenses',

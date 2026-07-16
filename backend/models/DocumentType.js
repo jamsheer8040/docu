@@ -9,8 +9,7 @@ const DocumentType = sequelize.define('DocumentType', {
   },
   name: {
     type: DataTypes.STRING(100),
-    allowNull: false,
-    unique: true
+    allowNull: false
   },
   category: {
     type: DataTypes.STRING(100),
@@ -20,11 +19,22 @@ const DocumentType = sequelize.define('DocumentType', {
   is_active: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  tenant_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'tenants',
+      key: 'id'
+    }
   }
 }, {
   tableName: 'document_types',
   timestamps: true,
-  underscored: true
+  underscored: true,
+  indexes: [
+    { unique: true, fields: ['name', 'tenant_id'] }
+  ]
 });
 
 module.exports = DocumentType;

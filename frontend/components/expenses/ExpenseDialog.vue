@@ -24,28 +24,22 @@
           </v-col>
 
           <v-col cols="12" md="6">
-            <v-combobox
-              v-model="state.category"
-              :items="expenseTypes"
-              label="Type of Expense"
+            <v-autocomplete
+              v-model="state.expense_sub_type_id"
+              :items="expenseSubTypes"
+              item-title="sub_type_name"
+              item-value="id"
+              label="Expense Sub Type *"
               variant="outlined"
-              placeholder="Select or type new"
+              placeholder="Select Sub Type"
               density="comfortable"
               clearable
-            ></v-combobox>
-          </v-col>
-
-          <v-col cols="12" md="6">
-            <v-combobox
-              v-model="state.sub_category"
-              :items="expenseItems"
-              label="Expense Item"
-              variant="outlined"
-              placeholder="Select or type new item"
-              density="comfortable"
-              clearable
-              :disabled="!state.category"
-            ></v-combobox>
+              :rules="[v => !!v || 'Sub Type is required']"
+            >
+              <template v-slot:item="{ props, item }">
+                <v-list-item v-bind="props" :subtitle="item.raw.ParentType?.type_name"></v-list-item>
+              </template>
+            </v-autocomplete>
           </v-col>
 
           <v-col cols="12" md="6">
@@ -147,31 +141,22 @@ const isEdit = !!props.expense;
 
 const { $api } = useNuxtApp();
 
-const expenseTypes = ref([]);
-const expenseConfig = ref([]);
+const expenseSubTypes = ref([]);
 
 const loadConfig = async () => {
   try {
-    const res = await $api.get('/config');
-    if (res.data.success && res.data.data.expense_categories) {
-      expenseConfig.value = res.data.data.expense_categories;
-      expenseTypes.value = expenseConfig.value.map(c => c.name);
+    const res = await $api.get('/expense-sub-types');
+    if (res.data.success) {
+      expenseSubTypes.value = res.data.data.filter(t => t.status === 'Active');
     }
   } catch (err) {
     console.error('Failed to load expense categories config', err);
   }
 };
 
-const expenseItems = computed(() => {
-  if (!state.category) return [];
-  const typeConfig = expenseConfig.value.find(c => c.name === state.category);
-  return typeConfig ? (typeConfig.items || []) : [];
-});
-
 const state = reactive({
   description: '',
-  category: '',
-  sub_category: '',
+  expense_sub_type_id: null,
   amount: 0,
   status: 'Unpaid',
   payment_date: new Date().toISOString().substring(0, 10),
@@ -179,11 +164,7 @@ const state = reactive({
   notes: ''
 });
 
-watch(() => state.category, () => {
-  if (!expenseItems.value.includes(state.sub_category)) {
-    state.sub_category = '';
-  }
-});
+
 
 onMounted(() => {
   loadConfig();
@@ -200,28 +181,6 @@ const save = async () => {
   if (!valid) return;
 
   try {
-    if (state.category && state.sub_category) {
-      let typeConfig = expenseConfig.value.find(c => c.name === state.category);
-      let configChanged = false;
-
-      if (!typeConfig) {
-        typeConfig = { id: Date.now().toString(), name: state.category, items: [] };
-        expenseConfig.value.push(typeConfig);
-        configChanged = true;
-      }
-
-      if (!typeConfig.items.includes(state.sub_category)) {
-        typeConfig.items.push(state.sub_category);
-        configChanged = true;
-      }
-
-      if (configChanged) {
-        await $api.put('/config', {
-          expense_categories: expenseConfig.value
-        });
-      }
-    }
-
     if (isEdit) {
       await expenseStore.updateExpense(props.expense.id, state);
     } else {

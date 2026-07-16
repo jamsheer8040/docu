@@ -97,7 +97,7 @@
 
         <!-- Itemized Table Header -->
         <div class="d-flex align-center mb-4 px-2">
-          <div class="text-subtitle-1 font-weight-bold">Invoice Items</div>
+          <div class="text-subtitle-1 font-weight-bold">Invoice Items (Internal View)</div>
           <v-spacer></v-spacer>
           <v-btn
             v-if="invoiceType === 'manual'"
@@ -114,7 +114,7 @@
         <div v-for="(item, index) in state.items" :key="index" class="item-row mb-4 pa-4 border rounded-xl bg-surface-variant-light">
           <v-row dense align="center">
             <!-- Item selection from catalog (For Manual Invoice) -->
-            <v-col cols="12" md="6" v-if="invoiceType === 'manual'">
+            <v-col cols="12" md="3" v-if="invoiceType === 'manual'">
               <v-combobox
                 v-model="item.selectedItem"
                 :items="serviceTypes"
@@ -130,7 +130,7 @@
             </v-col>
 
             <!-- Text Field Description (For Service Invoice or read-only display) -->
-            <v-col cols="12" md="6" v-else>
+            <v-col cols="12" md="3" v-else>
               <v-text-field
                 v-model="item.description"
                 label="Description *"
@@ -140,7 +140,7 @@
               ></v-text-field>
             </v-col>
 
-            <v-col cols="3" md="1">
+            <v-col cols="12" md="1">
               <v-text-field
                 v-model.number="item.quantity"
                 label="Qty"
@@ -150,23 +150,34 @@
                 @input="calculateRow(index)"
               ></v-text-field>
             </v-col>
-            <v-col cols="4" md="2">
+            <v-col cols="12" md="2">
               <v-text-field
-                v-model.number="item.unit_price"
-                label="Price"
-                prefix="AED"
+                v-model.number="item.cost_price"
+                label="Cost (Govt Fee)"
                 type="number"
+                min="0"
                 hide-details="auto"
                 @input="calculateRow(index)"
               ></v-text-field>
             </v-col>
-            <v-col cols="4" md="2">
+            <v-col cols="12" md="2">
+              <v-text-field
+                v-model.number="item.service_charge"
+                label="Service Charge"
+                type="number"
+                min="0"
+                hide-details="auto"
+                @input="calculateRow(index)"
+              ></v-text-field>
+            </v-col>
+            
+            <v-col cols="12" md="2">
               <div class="text-right pt-4 px-2">
-                 <div class="text-caption opacity-60">Total</div>
-                 <div class="font-weight-bold text-subtitle-1">AED {{ item.total.toFixed(2) }}</div>
+                 <div class="text-caption opacity-60">Selling Price</div>
+                 <div class="font-weight-bold text-subtitle-1">AED {{ item.selling_price.toFixed(2) }}</div>
               </div>
             </v-col>
-            <v-col cols="1" class="text-right" v-if="invoiceType === 'manual'">
+            <v-col cols="12" md="1" class="text-right" v-if="invoiceType === 'manual'">
               <v-btn
                 v-if="state.items.length > 1"
                 icon="mdi-minus-circle-outline"
@@ -175,6 +186,51 @@
                 size="small"
                 @click="removeItem(index)"
               ></v-btn>
+            </v-col>
+          </v-row>
+
+          <!-- Second Row for VAT and Wallet Selection -->
+          <v-row dense align="center" class="mt-2">
+            <v-col cols="12" md="3">
+              <v-autocomplete
+                v-model="item.wallet_id"
+                :items="wallets"
+                item-title="name"
+                item-value="id"
+                label="Cost Payment Wallet"
+                placeholder="Select wallet for cost deduction"
+                variant="outlined"
+                density="compact"
+                hide-details="auto"
+                :disabled="item.cost_price <= 0"
+                :rules="item.cost_price > 0 ? [v => !!v || 'Required when cost > 0'] : []"
+              ></v-autocomplete>
+            </v-col>
+            <v-col cols="12" md="2" v-if="configStore.isTaxEnabled">
+              <v-select
+                v-model="item.vat_percentage"
+                :items="taxes"
+                item-title="name"
+                item-value="rate"
+                label="VAT Rate"
+                variant="outlined"
+                density="compact"
+                hide-details="auto"
+                @update:model-value="calculateRow(index)"
+              ></v-select>
+            </v-col>
+            <v-col cols="12" md="2" v-if="configStore.isTaxEnabled">
+               <div class="pt-4 px-2">
+                 <div class="text-caption opacity-60">VAT Amount</div>
+                 <div class="font-weight-bold">AED {{ item.vat_amount.toFixed(2) }}</div>
+              </div>
+            </v-col>
+            <v-spacer></v-spacer>
+            <v-col cols="12" md="3">
+               <div class="text-right pt-4 px-2 bg-primary-lighten-5 rounded pa-2">
+                 <div class="text-caption opacity-80 text-primary">Item Grand Total</div>
+                 <div class="font-weight-bold text-h6 text-primary">AED {{ item.total.toFixed(2) }}</div>
+              </div>
             </v-col>
           </v-row>
         </div>
@@ -193,36 +249,23 @@
           </v-col>
           <v-col cols="12" md="5" class="bg-grey-lighten-5 rounded-xl pa-6 border">
             <div class="d-flex justify-space-between mb-4">
-              <span class="opacity-70">Subtotal</span>
+              <span class="opacity-70">Total Selling Price (Subtotal)</span>
               <span class="font-weight-bold">AED {{ totals.subtotal.toFixed(2) }}</span>
             </div>
             
-            <div class="d-flex align-center mb-4">
-              <span class="opacity-70">Discount</span>
-              <v-spacer></v-spacer>
-              <v-text-field
-                v-model.number="state.discount"
-                prefix="AED"
-                type="number"
-                density="compact"
-                hide-details
-                style="max-width: 100px;"
-                class="bg-white ml-2"
-              ></v-text-field>
+            <div class="d-flex justify-space-between align-center mb-4" v-if="configStore.isTaxEnabled">
+              <span class="opacity-70">Total VAT</span>
+              <span class="font-weight-bold">AED {{ totals.vat.toFixed(2) }}</span>
             </div>
 
-            <div class="d-flex align-center mb-6">
-              <span class="opacity-70">Tax (VAT 5%)</span>
-              <v-spacer></v-spacer>
-              <v-text-field
-                v-model.number="state.tax"
-                prefix="AED"
-                type="number"
-                density="compact"
-                hide-details
-                style="max-width: 100px;"
-                class="bg-white ml-2"
-              ></v-text-field>
+            <div class="d-flex justify-space-between align-center mb-4">
+              <span class="opacity-70">Total Cost (Internal)</span>
+              <span class="font-weight-bold text-error">AED {{ totals.cost.toFixed(2) }}</span>
+            </div>
+
+            <div class="d-flex justify-space-between align-center mb-4">
+              <span class="opacity-70">Total Profit (Internal)</span>
+              <span class="font-weight-bold text-success">AED {{ (totals.subtotal - totals.cost).toFixed(2) }}</span>
             </div>
 
             <v-divider class="mb-4"></v-divider>
@@ -255,9 +298,9 @@
         size="large"
         class="px-8 font-weight-bold ml-2"
         :loading="invoiceStore.loading"
-        @click="save('Sent')"
+        @click="save('Issued')"
       >
-        Save as Final
+        Issue Invoice
       </v-btn>
     </v-card-actions>
   </v-card>
@@ -266,6 +309,7 @@
 <script setup>
 import { reactive, ref, computed, onMounted, watch } from 'vue';
 import { useInvoiceStore } from '~/stores/invoices';
+import { useConfigStore } from '~/stores/config';
 
 const props = defineProps({
   invoice: Object, // for editing
@@ -282,9 +326,16 @@ const props = defineProps({
 const emit = defineEmits(['save', 'cancel']);
 
 const invoiceStore = useInvoiceStore();
+const configStore = useConfigStore();
 const customers = ref([]);
 const serviceOrders = ref([]);
 const serviceTypes = ref([]);
+const wallets = ref([]);
+const taxes = ref([
+  { name: 'VAT 5%', rate: 5 },
+  { name: 'No VAT', rate: 0 }
+]);
+
 const loadingCustomers = ref(false);
 const loadingServiceOrders = ref(false);
 const loadingServiceTypes = ref(false);
@@ -294,83 +345,92 @@ const form = ref(null);
 const isEdit = !!props.invoice;
 const invoiceType = ref('service'); // 'service' or 'manual'
 
+const getEmptyItem = () => ({ 
+  selectedItem: '', 
+  description: '', 
+  quantity: 1, 
+  cost_price: 0, 
+  service_charge: 0, 
+  selling_price: 0, 
+  vat_percentage: 0, 
+  vat_amount: 0, 
+  total: 0,
+  wallet_id: null
+});
+
 const state = reactive({
   customer_id: null,
   service_order_id: null,
   due_date: new Date().toISOString().substring(0, 10),
   notes: '',
-  discount: 0,
-  tax: 0,
-  items: [
-    { selectedItem: '', description: '', quantity: 1, unit_price: 0, cost_price: 0, total: 0 }
-  ]
+  discount: 0, // Not heavily used in service invoices but kept for compatibility
+  tax: 0, // Represents global tax if used, but we calculate based on items now
+  items: [getEmptyItem()]
 });
 
-// Calculate Totals Reactively
+// Calculate main totals from items
 const totals = computed(() => {
-    const subtotal = state.items.reduce((acc, item) => {
-        const qty = parseFloat(item.quantity) || 0;
-        const price = parseFloat(item.unit_price) || 0;
-        return acc + (qty * price);
-    }, 0);
+    let subtotal = 0;
+    let cost = 0;
+    let vat = 0;
+    let total = 0;
     
-    const discount = parseFloat(state.discount) || 0;
-    const tax = parseFloat(state.tax) || 0;
-    const total = Math.max(0, subtotal - discount + tax);
+    state.items.forEach(item => {
+        subtotal += (item.selling_price * item.quantity);
+        cost += (item.cost_price * item.quantity);
+        vat += item.vat_amount;
+        total += item.total;
+    });
     
     return { 
         subtotal: parseFloat(subtotal.toFixed(2)), 
+        cost: parseFloat(cost.toFixed(2)),
+        vat: parseFloat(vat.toFixed(2)),
         total: parseFloat(total.toFixed(2)) 
     };
 });
 
-// Auto-calculate VAT (5% of subtotal minus discount)
-watch(() => totals.value.subtotal, (newSubtotal) => {
-  if (!isEdit) {
-    const discount = parseFloat(state.discount) || 0;
-    state.tax = parseFloat(((newSubtotal - discount) * 0.05).toFixed(2));
+const calculateSellingPrice = (serviceType, customer) => {
+  if (!serviceType) return 0;
+  const cost = parseFloat(serviceType.cost_price) || 0;
+  const pricings = serviceType.ServiceTypePricings || [];
+  
+  let targetPricing = null;
+  if (serviceType.pricing_mode === 'Single') {
+    targetPricing = pricings.find(p => p.pricing_type === 'Single');
+  } else if (customer) {
+    const category = customer.pricing_category || 'Normal';
+    targetPricing = pricings.find(p => p.pricing_type === category);
   }
-});
-
-watch(() => state.discount, (newDiscount) => {
-  if (!isEdit) {
-    state.tax = parseFloat(((totals.value.subtotal - newDiscount) * 0.05).toFixed(2));
-  }
-});
+  
+  if (!targetPricing && pricings.length > 0) targetPricing = pricings[0];
+  
+  return targetPricing ? parseFloat(targetPricing.selling_price) : cost;
+};
 
 // Handle tab switches
 watch(invoiceType, (newType) => {
   if (isEdit) return;
   state.service_order_id = null;
   state.customer_id = props.prefilledCustomerId ? parseInt(props.prefilledCustomerId) : null;
-  state.items = [
-    { selectedItem: '', description: '', quantity: 1, unit_price: 0, cost_price: 0, total: 0 }
-  ];
+  state.items = [getEmptyItem()];
 });
 
-const fetchCustomers = async () => {
+const fetchData = async () => {
+  const { $api } = useNuxtApp();
+  
+  // Fetch Customers
   loadingCustomers.value = true;
-  try {
-    const { $api } = useNuxtApp();
-    const response = await $api.get('/customers', { params: { limit: 1000, is_active: 'true' } });
-    if (response.data?.success) {
-      customers.value = response.data.data;
-    }
-  } catch (err) {
-    console.error('Failed to fetch customers', err);
-  } finally {
+  $api.get('/customers', { params: { limit: 1000, is_active: 'true' } }).then(r => {
+    if (r.data?.success) customers.value = r.data.data;
     loadingCustomers.value = false;
-  }
-};
+  }).catch(() => loadingCustomers.value = false);
 
-const fetchServiceOrders = async () => {
+  // Fetch Service Orders
   loadingServiceOrders.value = true;
-  try {
-    const { $api } = useNuxtApp();
-    const response = await $api.get('/services/orders', { params: { limit: 1000 } });
-    if (response.data?.success) {
-      // Filter active (Pending or InProgress) service orders
-      let filtered = response.data.data.filter(
+  $api.get('/services/orders', { params: { limit: 1000 } }).then(r => {
+    if (r.data?.success) {
+      let filtered = r.data.data.filter(
         o => o.status === 'Pending' || o.status === 'InProgress' || o.status === 'CompletedInvoicePending'
       );
       if (props.prefilledCustomerId) {
@@ -378,32 +438,29 @@ const fetchServiceOrders = async () => {
       }
       serviceOrders.value = filtered;
     }
-  } catch (err) {
-    console.error('Failed to fetch service orders', err);
-  } finally {
     loadingServiceOrders.value = false;
-  }
-};
+  }).catch(() => loadingServiceOrders.value = false);
 
-const fetchServiceTypes = async () => {
+  // Fetch Service Types
   loadingServiceTypes.value = true;
-  try {
-    const { $api } = useNuxtApp();
-    const response = await $api.get('/services/types', { params: { limit: 1000, is_active: 'true' } });
-    if (response.data?.success) {
-      serviceTypes.value = response.data.data;
-    }
-  } catch (err) {
-    console.error('Failed to fetch service types', err);
-  } finally {
+  $api.get('/services/types', { params: { limit: 1000, is_active: 'true' } }).then(r => {
+    if (r.data?.success) serviceTypes.value = r.data.data;
     loadingServiceTypes.value = false;
-  }
+  }).catch(() => loadingServiceTypes.value = false);
+
+  // Fetch Wallets
+  $api.get('/wallet/accounts', { params: { limit: 100 } }).then(r => {
+    if (r.data?.success) wallets.value = r.data.data;
+  });
+
+  // Fetch Taxes
+  $api.get('/taxes').then(r => {
+    if (r.data?.success && r.data.data.length > 0) taxes.value = r.data.data.map(t => ({ name: t.name, rate: parseFloat(t.rate) }));
+  });
 };
 
 onMounted(() => {
-  fetchCustomers();
-  fetchServiceOrders();
-  fetchServiceTypes();
+  fetchData();
 
   if (isEdit) {
       invoiceType.value = props.invoice.service_order_id ? 'service' : 'manual';
@@ -416,14 +473,18 @@ onMounted(() => {
           tax: parseFloat(props.invoice.tax) || 0,
           items: props.invoice.InvoiceItems.map(i => {
               const qty = parseFloat(i.quantity);
-              const price = parseFloat(i.unit_price);
               return {
                   selectedItem: i.description,
                   description: i.description,
                   quantity: qty,
-                  unit_price: price,
+                  list_price: parseFloat(i.list_price || 0),
                   cost_price: parseFloat(i.cost_price || 0),
-                  total: qty * price
+                  service_charge: parseFloat(i.service_charge || 0),
+                  selling_price: parseFloat(i.selling_price || 0) || parseFloat(i.unit_price || 0),
+                  vat_percentage: parseFloat(i.vat_percentage || 0),
+                  vat_amount: parseFloat(i.vat_amount || 0),
+                  total: parseFloat(i.total),
+                  wallet_id: i.wallet_id
               };
           })
       });
@@ -435,7 +496,6 @@ onMounted(() => {
   }
 });
 
-// Watch for serviceOrders load to prefill service order details if provided
 watch(serviceOrders, (newOrders) => {
   if (props.prefilledServiceOrderId && newOrders.length > 0 && !state.customer_id) {
     onServiceOrderSelected(parseInt(props.prefilledServiceOrderId));
@@ -447,32 +507,43 @@ const onServiceOrderSelected = (orderId) => {
   const order = serviceOrders.value.find(o => o.id === orderId);
   if (!order) return;
 
+  const customer = customers.value.find(c => c.id === order.customer_id);
+  const sellingPrice = calculateSellingPrice(order.ServiceType, customer);
+  const costPrice = parseFloat(order.ServiceType?.cost_price || 0);
+  const serviceCharge = sellingPrice > costPrice ? sellingPrice - costPrice : 0;
+
   state.customer_id = order.customer_id;
-  state.items = [
-    {
-      description: order.ServiceType?.name || '',
-      quantity: 1,
-      unit_price: parseFloat(order.ServiceType?.sell_price || 0),
-      cost_price: parseFloat(order.ServiceType?.cost_price || 0),
-      total: parseFloat(order.ServiceType?.sell_price || 0)
-    }
-  ];
+  
+  const newItem = getEmptyItem();
+  newItem.description = order.ServiceType?.name || '';
+  newItem.cost_price = costPrice;
+  newItem.service_charge = serviceCharge;
+  newItem.selling_price = sellingPrice;
+  
+  state.items = [newItem];
+  calculateRow(0);
 };
 
 const onItemCatalogSelected = (index, value) => {
   const item = state.items[index];
   if (typeof value === 'object' && value !== null) {
+    const customer = customers.value.find(c => c.id === state.customer_id);
+    const sellingPrice = calculateSellingPrice(value, customer);
+    const costPrice = parseFloat(value.cost_price || 0);
+    const serviceCharge = sellingPrice > costPrice ? sellingPrice - costPrice : 0;
+
     item.description = value.name;
-    item.unit_price = parseFloat(value.sell_price || 0);
-    item.cost_price = parseFloat(value.cost_price || 0);
-    item.total = item.quantity * item.unit_price;
+    item.cost_price = costPrice;
+    item.service_charge = serviceCharge;
+    item.selling_price = sellingPrice;
+    calculateRow(index);
   } else if (typeof value === 'string') {
     item.description = value;
   }
 };
 
 const addItem = () => {
-    state.items.push({ selectedItem: '', description: '', quantity: 1, unit_price: 0, cost_price: 0, total: 0 });
+    state.items.push(getEmptyItem());
 };
 
 const removeItem = (index) => {
@@ -481,7 +552,18 @@ const removeItem = (index) => {
 
 const calculateRow = (index) => {
     const item = state.items[index];
-    item.total = parseFloat(item.quantity || 0) * parseFloat(item.unit_price || 0);
+    const cost = parseFloat(item.cost_price) || 0;
+    const charge = parseFloat(item.service_charge) || 0;
+    
+    item.selling_price = cost + charge;
+    
+    const qty = parseFloat(item.quantity) || 1;
+    const totalSelling = item.selling_price * qty;
+    
+    const vatRate = parseFloat(item.vat_percentage) || 0;
+    item.vat_amount = parseFloat(((totalSelling * vatRate) / 100).toFixed(2));
+    
+    item.total = totalSelling + item.vat_amount;
 };
 
 const save = async (status) => {
@@ -489,9 +571,14 @@ const save = async (status) => {
     if (!isFormValid) return;
 
     try {
-        state.status = status;
+        let targetStatus = status;
+        // Always save as Draft first to let backend properly trigger the 'Issued' deduction hook
+        if (status === 'Issued') {
+            state.status = 'Draft';
+        } else {
+            state.status = status;
+        }
         
-        // Final fallback: populate item description from combobox selection
         state.items.forEach(item => {
           if (item.selectedItem && typeof item.selectedItem === 'object') {
             item.description = item.selectedItem.name;
@@ -507,15 +594,11 @@ const save = async (status) => {
             res = await invoiceStore.createInvoice(state);
         }
 
-        // Auto-download PDF for Final invoices
-        if (status === 'Sent' && res && res.data) {
-            try {
-                await invoiceStore.downloadPDF(res.data.id, res.data.invoice_number);
-            } catch (pdfErr) {
-                console.error('PDF auto-download failed', pdfErr);
-            }
+        // If target was Issued, now trigger the status transition
+        if (targetStatus === 'Issued' && res && res.data) {
+            await invoiceStore.updateStatus(res.data.id, 'Issued');
         }
-        
+
         emit('save');
     } catch (err) {
         alert(err.message || 'Operation failed');

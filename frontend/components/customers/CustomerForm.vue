@@ -55,12 +55,20 @@
                 variant="outlined"
               ></v-text-field>
             </v-col>
-            <v-col cols="12" md="6">
+            <v-col cols="12" md="4">
               <v-text-field
                 v-model="state.country"
                 label="Country"
                 variant="outlined"
               ></v-text-field>
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-select
+                v-model="state.pricing_category"
+                :items="['Normal', 'Prime', 'Prime+']"
+                label="Pricing Category"
+                variant="outlined"
+              ></v-select>
             </v-col>
             <v-col cols="12">
               <v-textarea
@@ -129,6 +137,7 @@ const initialState = {
   city: '',
   country: 'UAE',
   trade_license_no: '',
+  pricing_category: 'Normal',
   notes: ''
 };
 

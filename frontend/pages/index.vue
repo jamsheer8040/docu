@@ -1,6 +1,24 @@
 <template>
   <v-container fluid class="pa-2 pa-sm-4 pa-md-6">
-    <!-- Welcome Header -->
+    <template v-if="authStore.user?.Tenant?.status === 'new_registration'">
+      <v-row class="fill-height align-center justify-center" style="min-height: 70vh;">
+        <v-col cols="12" md="8" lg="6" class="text-center">
+          <v-card class="glass-card pa-12 rounded-2xl border-light" variant="flat">
+            <v-icon icon="mdi-account-clock" size="80" color="info" class="mb-6"></v-icon>
+            <h1 class="text-h3 font-weight-black text-info mb-4">Account Approval Pending</h1>
+            <p class="text-h6 text-secondary font-weight-medium mb-6">
+              Your registration has been received successfully. Our team will review and approve your account shortly.
+            </p>
+            <v-btn color="primary" variant="tonal" size="x-large" class="rounded-lg font-weight-bold px-8" @click="authStore.fetchMe()">
+              Refresh Status
+            </v-btn>
+          </v-card>
+        </v-col>
+      </v-row>
+    </template>
+
+    <template v-else>
+      <!-- Welcome Header -->
     <v-row class="mb-4 align-center">
       <v-col cols="12" md="8" class="py-1">
         <h1 class="text-h4 font-weight-black text-gradient mb-0">
@@ -194,6 +212,7 @@
         </v-card>
       </v-col>
     </v-row>
+    </template>
   </v-container>
 </template>
 

@@ -21,6 +21,8 @@ const loginLimiter = rateLimit({
 router.post('/login', loginLimiter, loginValidator, authController.login);
 router.post('/refresh', authController.refresh);
 router.post('/logout', authController.logout);
+router.post('/register-tenant', authController.registerTenant);
+router.get('/plans', authController.getPublicPlans);
 
 // Protected routes
 router.get('/me', verifyToken, authController.me);

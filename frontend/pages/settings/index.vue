@@ -16,6 +16,8 @@
           <v-tab value="users" prepend-icon="mdi-account-group">Users</v-tab>
           <v-tab value="roles" prepend-icon="mdi-shield-account">Roles</v-tab>
           <v-tab value="general" prepend-icon="mdi-tune">General</v-tab>
+          <v-tab value="subscription" prepend-icon="mdi-card-account-details-star-outline">Subscription</v-tab>
+          <v-tab value="taxes" prepend-icon="mdi-cash-register">Taxes</v-tab>
         </v-tabs>
       </v-col>
     </v-row>
@@ -62,13 +64,29 @@
               </v-toolbar>
             </template>
 
-            <!-- Custom Profit Column -->
-            <template v-slot:item.profit="{ item }">
-              <span :class="parseFloat(item.sell_price - item.cost_price) >= 0 ? 'text-success' : 'text-error'" class="font-weight-bold">
-                AED {{ (item.sell_price - item.cost_price).toFixed(2) }}
+            <!-- Custom Sell Price Column -->
+            <template v-slot:item.sell_price="{ item }">
+              <div v-if="item.pricing_mode === 'Multi'" class="text-caption">
+                <div v-for="p in item.ServiceTypePricings" :key="p.id" class="mb-1">
+                  <span class="opacity-60">{{ p.pricing_type }}:</span> AED {{ parseFloat(p.selling_price).toFixed(2) }}
+                </div>
+              </div>
+              <span v-else>
+                AED {{ formatSellPrice(item) }}
               </span>
             </template>
-            
+
+            <!-- Custom Profit Column -->
+            <template v-slot:item.profit="{ item }">
+              <div v-if="item.pricing_mode === 'Multi'" class="text-caption text-success font-weight-bold">
+                <div v-for="p in item.ServiceTypePricings" :key="p.id" class="mb-1">
+                  <span class="opacity-60">{{ p.pricing_type }}:</span> AED {{ parseFloat(p.service_charge).toFixed(2) }}
+                </div>
+              </div>
+              <span v-else class="font-weight-bold text-success">
+                AED {{ formatProfit(item) }}
+              </span>
+            </template>
             <!-- Status Column -->
             <template v-slot:item.is_active="{ item }">
               <v-switch
@@ -386,6 +404,137 @@
             </v-col>
          </v-row>
       </v-window-item>
+      <!-- Subscription Details -->
+      <v-window-item value="subscription">
+         <v-row>
+            <v-col cols="12" md="8">
+               <v-card class="border pa-6" border>
+                  <div class="d-flex align-center mb-6">
+                     <v-avatar color="primary" variant="tonal" size="48" class="mr-4">
+                        <v-icon icon="mdi-card-account-details-star-outline"></v-icon>
+                     </v-avatar>
+                     <div>
+                        <div class="text-h6 font-weight-bold">Subscription Information</div>
+                        <div class="text-caption text-grey">View your current plan and billing details</div>
+                     </div>
+                  </div>
+                  
+                  <v-list lines="two" class="bg-transparent">
+                     <v-list-item>
+                        <v-list-item-title class="font-weight-bold">Current Status</v-list-item-title>
+                        <v-list-item-subtitle class="text-uppercase text-primary font-weight-black mt-1">{{ auth.user?.Tenant?.status || 'Unknown' }}</v-list-item-subtitle>
+                     </v-list-item>
+                     <v-divider class="my-2"></v-divider>
+                     <v-list-item>
+                        <v-list-item-title class="font-weight-bold">Active Package</v-list-item-title>
+                        <v-list-item-subtitle class="mt-1">{{ auth.user?.Tenant?.Plan?.name || 'Standard' }}</v-list-item-subtitle>
+                     </v-list-item>
+                     <v-divider class="my-2"></v-divider>
+                     <v-list-item>
+                        <v-list-item-title class="font-weight-bold">Billing Cycle</v-list-item-title>
+                        <v-list-item-subtitle class="mt-1 text-capitalize">{{ auth.user?.Tenant?.billing_cycle || 'monthly' }}</v-list-item-subtitle>
+                     </v-list-item>
+                     <v-divider class="my-2"></v-divider>
+                     <v-list-item>
+                        <v-list-item-title class="font-weight-bold">Subscription Start Date</v-list-item-title>
+                        <v-list-item-subtitle class="mt-1">{{ auth.user?.Tenant?.subscription_starts_at ? new Date(auth.user.Tenant.subscription_starts_at).toLocaleDateString() : 'N/A' }}</v-list-item-subtitle>
+                     </v-list-item>
+                     <v-divider class="my-2"></v-divider>
+                     <v-list-item>
+                        <v-list-item-title class="font-weight-bold">Subscription Expiry Date</v-list-item-title>
+                        <v-list-item-subtitle class="mt-1">{{ auth.user?.Tenant?.subscription_ends_at ? new Date(auth.user.Tenant.subscription_ends_at).toLocaleDateString() : 'N/A' }}</v-list-item-subtitle>
+                     </v-list-item>
+                     <v-divider class="my-2"></v-divider>
+                     <v-list-item>
+                        <v-list-item-title class="font-weight-bold">Next Invoice Date</v-list-item-title>
+                        <v-list-item-subtitle class="mt-1">{{ auth.user?.Tenant?.next_billing_date ? new Date(auth.user.Tenant.next_billing_date).toLocaleDateString() : 'N/A' }}</v-list-item-subtitle>
+                     </v-list-item>
+                  </v-list>
+               </v-card>
+            </v-col>
+            <v-col cols="12" md="4">
+               <v-card class="border bg-blue-lighten-5 pa-6 rounded-2xl" border variant="flat">
+                  <h4 class="text-subtitle-1 font-weight-bold mb-2">Billing Support</h4>
+                  <p class="text-body-2 opacity-70 mb-4">
+                     For plan upgrades or billing inquiries, please contact our support team.
+                  </p>
+                  <v-btn color="primary" variant="outlined" block>Contact Support</v-btn>
+               </v-card>
+            </v-col>
+         </v-row>
+      </v-window-item>
+
+      <!-- Taxes Management -->
+      <v-window-item value="taxes">
+        <v-card class="border mb-4" border>
+          <v-card-title class="font-weight-bold px-4 pt-4">Global Tax Configuration</v-card-title>
+          <v-card-text>
+            <v-row class="align-center mt-2">
+              <v-col cols="12" md="4">
+                <v-switch
+                  v-model="taxGlobalConfig.is_tax_enabled"
+                  color="primary"
+                  label="Enable Tax System"
+                  hide-details
+                ></v-switch>
+              </v-col>
+              <v-col cols="12" md="6" v-if="taxGlobalConfig.is_tax_enabled">
+                <v-text-field
+                  v-model="taxGlobalConfig.tax_registration_number"
+                  label="Tax Registration Number (TRN)"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" md="2" class="text-right">
+                <v-btn color="primary" @click="saveGlobalTaxConfig" :loading="savingGlobalTax">Save</v-btn>
+              </v-col>
+            </v-row>
+          </v-card-text>
+        </v-card>
+
+        <v-card class="border" border>
+          <v-data-table
+            :headers="taxHeaders"
+            :items="taxes"
+            :loading="loadingTaxes"
+            hover
+          >
+            <template v-slot:top>
+              <v-toolbar flat color="transparent" class="px-4">
+                <v-toolbar-title class="font-weight-bold">Tax Rates</v-toolbar-title>
+                <v-spacer></v-spacer>
+                <v-btn
+                  v-if="auth.can('settings', 'write')"
+                  color="primary"
+                  prepend-icon="mdi-plus"
+                  rounded="lg"
+                  variant="flat"
+                  @click="openTaxDialog"
+                >
+                  Add New Tax
+                </v-btn>
+              </v-toolbar>
+            </template>
+
+            <template v-slot:item.rate="{ item }">
+              {{ parseFloat(item.rate).toFixed(2) }} %
+            </template>
+
+            <template v-slot:item.is_active="{ item }">
+              <v-chip :color="item.is_active ? 'success' : 'grey'" size="x-small">
+                {{ item.is_active ? 'Active' : 'Inactive' }}
+              </v-chip>
+            </template>
+
+            <template v-slot:item.actions="{ item }">
+              <v-btn v-if="auth.can('settings', 'write')" icon="mdi-pencil-outline" variant="text" size="small" color="primary" @click="openTaxDialog(item)"></v-btn>
+              <v-btn v-if="auth.can('settings', 'delete')" icon="mdi-delete-outline" variant="text" size="small" color="error" @click="confirmDeleteTax(item)"></v-btn>
+            </template>
+          </v-data-table>
+        </v-card>
+      </v-window-item>
     </v-window>
 
     <!-- Dialog User -->
@@ -528,6 +677,45 @@
     </v-dialog>
 
     <!-- Snackbar -->
+    <!-- Dialog Tax -->
+    <v-dialog v-model="taxDialog" max-width="400">
+      <v-card class="rounded-xl pa-4">
+        <v-card-title class="text-h5 font-weight-bold">
+          {{ editingTax ? 'Edit Tax' : 'New Tax' }}
+        </v-card-title>
+        <v-card-text class="pt-4">
+          <v-form ref="taxFormRef" v-model="taxFormValid" @submit.prevent="saveTax">
+            <v-text-field
+              v-model="taxForm.name"
+              label="Tax Name (e.g. VAT 5)"
+              variant="outlined"
+              :rules="[v => !!v || 'Name is required']"
+              required
+            ></v-text-field>
+            <v-text-field
+              v-model="taxForm.rate"
+              label="Tax Rate (%)"
+              type="number"
+              variant="outlined"
+              :rules="[v => !!v || 'Rate is required', v => v >= 0 || 'Cannot be negative']"
+              required
+            ></v-text-field>
+            <v-switch
+              v-model="taxForm.is_active"
+              label="Is Active"
+              color="success"
+              hide-details
+            ></v-switch>
+          </v-form>
+        </v-card-text>
+        <v-card-actions class="px-4 pb-4">
+          <v-spacer></v-spacer>
+          <v-btn variant="text" color="grey-darken-1" @click="taxDialog = false">Cancel</v-btn>
+          <v-btn color="primary" variant="flat" :disabled="!taxFormValid" @click="saveTax" class="px-6 rounded-lg">Save</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-snackbar v-model="snackbar" :color="snackbarColor" rounded="pill">
        {{ snackbarText }}
     </v-snackbar>
@@ -608,6 +796,23 @@ const docTypeDialog = ref(false);
 const newDocTypeName = ref('');
 const newDocTypeCategory = ref('Company Document');
 const editingDocType = ref(null);
+
+// Taxes State
+const taxHeaders = [
+  { title: 'Tax Name', key: 'name', sortable: true },
+  { title: 'Rate (%)', key: 'rate', sortable: true },
+  { title: 'Status', key: 'is_active', sortable: true },
+  { title: 'Actions', key: 'actions', align: 'end', sortable: false }
+];
+const taxes = ref([]);
+const loadingTaxes = ref(false);
+const taxDialog = ref(false);
+const editingTax = ref(null);
+const taxFormRef = ref(null);
+const taxFormValid = ref(false);
+const taxForm = reactive({ name: '', rate: 0, is_active: true });
+const taxGlobalConfig = reactive({ is_tax_enabled: false, tax_registration_number: '' });
+const savingGlobalTax = ref(false);
 
 // UI Meta
 const snackbar = ref(false);
@@ -696,6 +901,8 @@ const initSettings = async () => {
             const cRes = await $api.get('/config');
             if (cRes.data.success) {
                 Object.assign(configs, cRes.data.data);
+                taxGlobalConfig.is_tax_enabled = cRes.data.data.is_tax_enabled === 'true' || cRes.data.data.is_tax_enabled === true;
+                taxGlobalConfig.tax_registration_number = cRes.data.data.tax_registration_number || '';
             }
         } catch (e) {
             console.warn('[Settings] Config fetch failed, using defaults:', e);
@@ -703,6 +910,9 @@ const initSettings = async () => {
 
         // 4. Fetch Document Types
         await fetchDocTypes();
+
+        // 4.5. Fetch Taxes
+        await fetchTaxes();
 
         // 5. Fetch Customers
         await fetchCustomersForDropdown();
@@ -760,6 +970,8 @@ const confirmDeleteUser = async (user) => {
 };
 
 const openRoleDialog = (role = null) => {
+    // Vue passes MouseEvent if called without parens in template
+    if (role instanceof Event) role = null;
     editingRole.value = role;
     newRoleName.value = role ? role.name : '';
     newRoleType.value = role ? role.type : 'Internal';
@@ -893,6 +1105,27 @@ const openTypeForm = (type = null) => {
   typeDialog.value = true;
 };
 
+const formatSellPrice = (item) => {
+  if (!item.ServiceTypePricings || item.ServiceTypePricings.length === 0) return '0.00';
+  const p = item.ServiceTypePricings.find(x => x.pricing_type === 'Single') || item.ServiceTypePricings[0];
+  return p ? parseFloat(p.selling_price).toFixed(2) : '0.00';
+};
+
+const formatProfit = (item) => {
+  if (!item.ServiceTypePricings || item.ServiceTypePricings.length === 0) return '0.00';
+  if (item.pricing_mode === 'Single') {
+    const p = item.ServiceTypePricings.find(x => x.pricing_type === 'Single');
+    return p ? parseFloat(p.service_charge).toFixed(2) : '0.00';
+  } else {
+    // For Multi, we can show a range or just "Variable"
+    const charges = item.ServiceTypePricings.map(p => parseFloat(p.service_charge));
+    const min = Math.min(...charges);
+    const max = Math.max(...charges);
+    if (min === max) return min.toFixed(2);
+    return `${min.toFixed(2)} - ${max.toFixed(2)}`;
+  }
+};
+
 const saveServiceType = async (data) => {
   try {
     if (selectedType.value) {
@@ -936,6 +1169,82 @@ watch(searchCatalog, (val) => {
     }, 400);
 });
 
+// --- TAXES LOGIC ---
+
+const fetchTaxes = async () => {
+    loadingTaxes.value = true;
+    try {
+        const res = await $api.get('/taxes');
+        if (res.data.success) taxes.value = res.data.data;
+    } catch (e) {
+        console.error('Failed to fetch taxes', e);
+    } finally {
+        loadingTaxes.value = false;
+    }
+};
+
+const saveGlobalTaxConfig = async () => {
+    savingGlobalTax.value = true;
+    try {
+        const res = await $api.put('/config', {
+            is_tax_enabled: taxGlobalConfig.is_tax_enabled,
+            tax_registration_number: taxGlobalConfig.tax_registration_number
+        });
+        if (res.data.success) {
+            showNotify('Global tax configuration updated', 'success');
+        }
+    } catch (e) {
+        console.error('Failed to save global tax config', e);
+        showNotify('Failed to save global tax config', 'error');
+    } finally {
+        savingGlobalTax.value = false;
+    }
+};
+
+const openTaxDialog = (tax = null) => {
+    if (tax instanceof Event) tax = null;
+    editingTax.value = tax;
+    if (tax) {
+        taxForm.name = tax.name;
+        taxForm.rate = parseFloat(tax.rate);
+        taxForm.is_active = tax.is_active;
+    } else {
+        taxForm.name = '';
+        taxForm.rate = 0;
+        taxForm.is_active = true;
+    }
+    taxDialog.value = true;
+};
+
+const saveTax = async () => {
+    if (!taxFormValid.value) return;
+    try {
+        if (editingTax.value) {
+            await $api.put(`/taxes/${editingTax.value.id}`, taxForm);
+            showNotify('Tax updated successfully', 'success');
+        } else {
+            await $api.post('/taxes', taxForm);
+            showNotify('Tax created successfully', 'success');
+        }
+        taxDialog.value = false;
+        fetchTaxes();
+    } catch (e) {
+        showNotify(e.response?.data?.message || 'Error saving tax', 'error');
+    }
+};
+
+const confirmDeleteTax = async (tax) => {
+    if (confirm(`Are you sure you want to delete ${tax.name}?`)) {
+        try {
+            await $api.delete(`/taxes/${tax.id}`);
+            showNotify('Tax deleted successfully', 'success');
+            fetchTaxes();
+        } catch (e) {
+            showNotify('Error deleting tax', 'error');
+        }
+    }
+};
+
 // --- DOCUMENT TYPES LOGIC ---
 
 const fetchDocTypes = async () => {
@@ -951,6 +1260,8 @@ const fetchDocTypes = async () => {
 };
 
 const openDocTypeDialog = (type = null) => {
+    // Vue passes MouseEvent if called without parens in template
+    if (type instanceof Event) type = null;
     editingDocType.value = type;
     newDocTypeName.value = type ? type.name : '';
     newDocTypeCategory.value = type ? type.category : 'Company Document';

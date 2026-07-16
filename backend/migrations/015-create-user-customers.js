@@ -38,30 +38,33 @@ module.exports = {
       }
     });
 
-    // 2. Migrate existing data from users table
-    await queryInterface.sequelize.query(`
-      INSERT INTO user_customers (user_id, customer_id, created_at, updated_at)
-      SELECT id, customer_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP 
-      FROM users 
-      WHERE customer_id IS NOT NULL
-    `);
-
-    // 3. Drop the customer_id column from users table
-    // Fetch foreign keys constraints on customer_id
-    try {
-      const constraints = await queryInterface.sequelize.query(`
-        SELECT CONSTRAINT_NAME 
-        FROM information_schema.KEY_COLUMN_USAGE 
-        WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'customer_id' AND TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL;
+    // 2. Migrate existing data from users table if customer_id column exists
+    const tableInfo = await queryInterface.describeTable('users');
+    if (tableInfo.customer_id) {
+      await queryInterface.sequelize.query(`
+        INSERT INTO user_customers (user_id, customer_id, created_at, updated_at)
+        SELECT id, customer_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP 
+        FROM users 
+        WHERE customer_id IS NOT NULL
       `);
-      if (constraints && constraints[0] && constraints[0].length > 0) {
-        for (const c of constraints[0]) {
-          await queryInterface.removeConstraint('users', c.CONSTRAINT_NAME);
+
+      // 3. Drop the customer_id column from users table
+      // Fetch foreign keys constraints on customer_id
+      try {
+        const constraints = await queryInterface.sequelize.query(`
+          SELECT CONSTRAINT_NAME 
+          FROM information_schema.KEY_COLUMN_USAGE 
+          WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'customer_id' AND TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL;
+        `);
+        if (constraints && constraints[0] && constraints[0].length > 0) {
+          for (const c of constraints[0]) {
+            await queryInterface.removeConstraint('users', c.CONSTRAINT_NAME);
+          }
         }
+        await queryInterface.removeColumn('users', 'customer_id');
+      } catch (err) {
+        console.warn('Could not drop customer_id from users', err.message);
       }
-      await queryInterface.removeColumn('users', 'customer_id');
-    } catch (err) {
-      console.warn('Could not drop customer_id from users', err.message);
     }
   },
 

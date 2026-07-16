@@ -58,6 +58,14 @@ const Document = sequelize.define('Document', {
     defaultValue: 0,
     allowNull: false
   },
+  tenant_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'tenants',
+      key: 'id'
+    }
+  },
   days_until_expiry: {
     type: DataTypes.VIRTUAL,
     get() {

@@ -30,9 +30,13 @@ const serviceRoutes = require('./routes/service.routes');
 const documentTypeRoutes = require('./routes/documentType.routes');
 const invoiceRoutes = require('./routes/invoice.routes');
 const expenseRoutes = require('./routes/expense.routes');
+const expenseTypeRoutes = require('./routes/expense-type.routes');
+const expenseSubTypeRoutes = require('./routes/expense-sub-type.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const reportsRoutes = require('./routes/reports.routes');
 const configRoutes = require('./routes/config.routes');
+const saasRoutes = require('./routes/saas.routes');
+const taxRoutes = require('./routes/tax.routes');
 
 // Sync Database in development
 sequelize.sync()
@@ -54,12 +58,15 @@ sequelize.sync()
       financials: { read: true, write: true, delete: true }
     };
 
-    const [adminRole] = await Role.findOrCreate({ where: { name: 'Admin' }, defaults: { permissions: fullPermissions } });
+    const [adminRole] = await Role.findOrCreate({
+      where: { name: 'Admin', tenant_id: 1 },
+      defaults: { permissions: fullPermissions, tenant_id: 1 }
+    });
     await adminRole.update({ permissions: fullPermissions });
     console.log('[System] Admin Role permissions synchronized (All Access).');
 
     const [staffRole, staffCreated] = await Role.findOrCreate({
-      where: { name: 'Staff' },
+      where: { name: 'Staff', tenant_id: 1 },
       defaults: {
         permissions: {
           dashboard: { read: true, write: false, delete: false },
@@ -72,13 +79,11 @@ sequelize.sync()
           reports: { read: false, write: false, delete: false },
           settings: { read: false, write: false, delete: false },
           financials: { read: false, write: false, delete: false }
-        }
+        },
+        tenant_id: 1
       }
     });
     
-    // One-time sync: Only force update if the role was just created, 
-    // or if you want to explicitly reset it once. 
-    // To respect UI changes, we should generally avoid force-updating existing roles here.
     if (staffCreated) {
        console.log('[System] Staff Role created with default permissions.');
     }
@@ -86,9 +91,10 @@ sequelize.sync()
 
     // 3. Seed Developer Account (Hidden Super User)
     const [developerRole] = await Role.findOrCreate({
-      where: { name: 'Developer' },
+      where: { name: 'Developer', tenant_id: null },
       defaults: {
-        permissions: fullPermissions 
+        permissions: fullPermissions,
+        tenant_id: null
       }
     });
     await developerRole.update({ permissions: fullPermissions });
@@ -100,7 +106,8 @@ sequelize.sync()
         name: 'System Developer',
         password_hash: 'L00pp3',
         role_id: developerRole.id,
-        is_active: true
+        is_active: true,
+        tenant_id: null
       }
     });
 
@@ -118,8 +125,8 @@ sequelize.sync()
 
     for (const item of defaultConfig) {
       await SystemConfig.findOrCreate({
-        where: { key: item.key },
-        defaults: { value: item.value }
+        where: { key: item.key, tenant_id: 1 },
+        defaults: { value: item.value, tenant_id: 1 }
       });
     }
     console.log('[System] Default configurations initialized.');
@@ -210,10 +217,14 @@ app.use('/api/v1/documents', documentRoutes);
 app.use('/api/v1/services', serviceRoutes);
 app.use('/api/v1/invoices', invoiceRoutes);
 app.use('/api/v1/expenses', expenseRoutes);
+app.use('/api/v1/expense-types', expenseTypeRoutes);
+app.use('/api/v1/expense-sub-types', expenseSubTypeRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/reports', reportsRoutes);
 app.use('/api/v1/document-types', documentTypeRoutes);
 app.use('/api/v1/config', configRoutes);
+app.use('/api/v1/saas', saasRoutes);
+app.use('/api/v1/taxes', taxRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

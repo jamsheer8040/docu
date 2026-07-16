@@ -48,7 +48,11 @@ exports.listInvoices = async (req, res) => {
         if (date_from || date_to) {
             whereClause.created_at = {};
             if (date_from) whereClause.created_at[Op.gte] = new Date(date_from);
-            if (date_to) whereClause.created_at[Op.lte] = new Date(date_to);
+            if (date_to) {
+                const endDate = new Date(date_to);
+                endDate.setHours(23, 59, 59, 999);
+                whereClause.created_at[Op.lte] = endDate;
+            }
         }
 
         const include = [
@@ -136,27 +140,70 @@ exports.createInvoice = async (req, res) => {
         }, { transaction });
 
         const itemRecords = items.map(item => {
-            const itemTotal = parseFloat(item.quantity) * parseFloat(item.unit_price);
+            const listPrice = parseFloat(item.list_price || 0);
+            const costPrice = parseFloat(item.cost_price || 0);
+            const serviceCharge = parseFloat(item.service_charge || 0);
+            const sellingPrice = parseFloat(item.selling_price || (costPrice + serviceCharge));
+            const vatPercentage = parseFloat(item.vat_percentage || 0);
+            const vatAmount = parseFloat(item.vat_amount || 0);
+            const quantity = parseFloat(item.quantity || 1);
+            
+            const itemTotal = parseFloat(item.total || 0) || (sellingPrice + vatAmount) * quantity;
+            const unitPrice = parseFloat(item.unit_price || 0) || (sellingPrice + vatAmount);
+
             subtotal += itemTotal;
-            costTotal += (parseFloat(item.quantity) * parseFloat(item.cost_price || 0));
+            costTotal += (quantity * costPrice);
             
             return {
                 invoice_id: invoice.id,
                 description: item.description,
-                quantity: item.quantity,
-                unit_price: item.unit_price,
-                cost_price: item.cost_price || 0,
-                total: itemTotal
+                quantity: quantity,
+                list_price: listPrice,
+                cost_price: costPrice,
+                service_charge: serviceCharge,
+                selling_price: sellingPrice,
+                vat_percentage: vatPercentage,
+                vat_amount: vatAmount,
+                unit_price: unitPrice,
+                total: itemTotal,
+                wallet_id: item.wallet_id || null,
+                tenant_id: req.tenantId
             };
         });
 
         await InvoiceItem.bulkCreate(itemRecords, { transaction });
 
+        if (invoice.status === 'Issued') {
+            const { WalletTransaction, WalletAccount } = require('../models');
+            for (const item of itemRecords) {
+                if (item.wallet_id && item.cost_price > 0) {
+                    const totalCost = parseFloat(item.cost_price) * parseInt(item.quantity);
+                    if (totalCost > 0) {
+                        await WalletTransaction.create({
+                            account_id: item.wallet_id,
+                            type: 'Expense',
+                            direction: 'Out',
+                            amount: totalCost,
+                            reference_id: invoice.id,
+                            reference_type: 'InvoiceCost',
+                            description: `Cost payment for Invoice #${invoice.invoice_number} - ${item.description}`,
+                            tenant_id: invoice.tenant_id
+                        }, { transaction });
+                        await WalletAccount.decrement('balance', {
+                            by: totalCost,
+                            where: { id: item.wallet_id },
+                            transaction
+                        });
+                    }
+                }
+            }
+        }
+
         // Update main total
-        const finalTotal = subtotal - (discount || 0) + (tax || 0);
+        const finalTotal = subtotal - (parseFloat(discount) || 0); // Note: overall tax field is separate, but we use item vat too. We'll leave global tax as is for now if they use it.
         await invoice.update({ 
             subtotal, 
-            total: finalTotal,
+            total: finalTotal + (parseFloat(tax) || 0),
             cost_total: costTotal
         }, { transaction });
 
@@ -190,8 +237,8 @@ exports.updateInvoice = async (req, res) => {
         const invoice = await Invoice.findByPk(req.params.id, { transaction });
 
         if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
-        if (invoice.status !== 'Draft') {
-            return res.status(400).json({ success: false, message: 'Only Draft invoices can be edited' });
+        if (invoice.status !== 'Draft' && invoice.status !== 'Pending Approval') {
+            return res.status(400).json({ success: false, message: 'Only Draft/Pending invoices can be edited' });
         }
 
         // Remove existing items
@@ -202,21 +249,64 @@ exports.updateInvoice = async (req, res) => {
         let costTotal = 0;
 
         const itemRecords = items.map(item => {
-            const itemTotal = parseFloat(item.quantity) * parseFloat(item.unit_price);
+            const listPrice = parseFloat(item.list_price || 0);
+            const costPrice = parseFloat(item.cost_price || 0);
+            const serviceCharge = parseFloat(item.service_charge || 0);
+            const sellingPrice = parseFloat(item.selling_price || (costPrice + serviceCharge));
+            const vatPercentage = parseFloat(item.vat_percentage || 0);
+            const vatAmount = parseFloat(item.vat_amount || 0);
+            const quantity = parseFloat(item.quantity || 1);
+            
+            const itemTotal = parseFloat(item.total || 0) || (sellingPrice + vatAmount) * quantity;
+            const unitPrice = parseFloat(item.unit_price || 0) || (sellingPrice + vatAmount);
+
             subtotal += itemTotal;
-            costTotal += (parseFloat(item.quantity) * parseFloat(item.cost_price || 0));
+            costTotal += (quantity * costPrice);
             
             return {
                 invoice_id: invoice.id,
                 description: item.description,
-                quantity: item.quantity,
-                unit_price: item.unit_price,
-                cost_price: item.cost_price || 0,
-                total: itemTotal
+                quantity: quantity,
+                list_price: listPrice,
+                cost_price: costPrice,
+                service_charge: serviceCharge,
+                selling_price: sellingPrice,
+                vat_percentage: vatPercentage,
+                vat_amount: vatAmount,
+                unit_price: unitPrice,
+                total: itemTotal,
+                wallet_id: item.wallet_id || null,
+                tenant_id: req.tenantId
             };
         });
 
         await InvoiceItem.bulkCreate(itemRecords, { transaction });
+
+        if (invoice.status === 'Issued') {
+            const { WalletTransaction, WalletAccount } = require('../models');
+            for (const item of itemRecords) {
+                if (item.wallet_id && item.cost_price > 0) {
+                    const totalCost = parseFloat(item.cost_price) * parseInt(item.quantity);
+                    if (totalCost > 0) {
+                        await WalletTransaction.create({
+                            account_id: item.wallet_id,
+                            type: 'Expense',
+                            direction: 'Out',
+                            amount: totalCost,
+                            reference_id: invoice.id,
+                            reference_type: 'InvoiceCost',
+                            description: `Cost payment for Invoice #${invoice.invoice_number} - ${item.description}`,
+                            tenant_id: invoice.tenant_id
+                        }, { transaction });
+                        await WalletAccount.decrement('balance', {
+                            by: totalCost,
+                            where: { id: item.wallet_id },
+                            transaction
+                        });
+                    }
+                }
+            }
+        }
 
         // Update main total
         const finalTotal = subtotal - (parseFloat(discount) || 0) + (parseFloat(tax) || 0);
@@ -260,58 +350,123 @@ exports.updateStatus = async (req, res) => {
     const transaction = await sequelize.transaction();
     try {
         const { status, account_id, amount } = req.body; 
-        const invoice = await Invoice.findByPk(req.params.id, { transaction });
+        const invoice = await Invoice.findByPk(req.params.id, { 
+            include: [{ model: InvoiceItem }],
+            transaction 
+        });
 
         if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
         
-        // Transition Logic: Adding Payment (Moving TO Paid or Partially Paid)
-        if ((status === 'Paid' || status === 'Partially Paid') && (invoice.status !== 'Paid' || status === 'Partially Paid')) {
-            if (!account_id) {
-                await transaction.rollback();
-                return res.status(400).json({ success: false, message: 'Please select a Wallet Account to receive funds' });
+        // 1. Wallet Deduction Logic for Government Fees (Cost Price)
+        // Happens when an invoice transitions to Issued for the first time
+        if (status === 'Issued' && invoice.status !== 'Issued' && invoice.status !== 'Paid' && invoice.status !== 'Partially Paid') {
+            for (const item of invoice.InvoiceItems) {
+                if (item.wallet_id && item.cost_price > 0) {
+                    const totalCost = parseFloat(item.cost_price) * parseInt(item.quantity);
+                    if (totalCost > 0) {
+                        // Create negative WalletTransaction (Expense)
+                        await WalletTransaction.create({
+                            account_id: item.wallet_id,
+                            type: 'Expense',
+                            direction: 'Out',
+                            amount: totalCost,
+                            reference_id: invoice.id,
+                            reference_type: 'InvoiceCost',
+                            description: `Cost payment for Invoice #${invoice.invoice_number} - ${item.description}`,
+                            tenant_id: invoice.tenant_id
+                        }, { transaction });
+
+                        // Deduct from wallet balance
+                        await WalletAccount.decrement('balance', {
+                            by: totalCost,
+                            where: { id: item.wallet_id },
+                            transaction
+                        });
+                    }
+                }
             }
+        }
 
-            const paymentAmount = parseFloat(amount) || (parseFloat(invoice.total) - parseFloat(invoice.paid_amount));
-            
-            if (paymentAmount <= 0) {
-                await transaction.rollback();
-                return res.status(400).json({ success: false, message: 'Invalid payment amount' });
-            }
-
-            await WalletTransaction.create({
-                account_id,
-                type: 'Income',
-                direction: 'In',
-                amount: paymentAmount,
-                reference_id: invoice.id,
-                reference_type: 'Invoice',
-                description: `Payment for Invoice #${invoice.invoice_number}`
-            }, { transaction });
-
-            await WalletAccount.increment('balance', { 
-                by: paymentAmount, 
-                where: { id: account_id }, 
-                transaction 
+        // Transition Logic: Reversing Issued -> Draft/Cancelled
+        if ((status === 'Draft' || status === 'Cancelled' || status === 'Pending Approval') && 
+            (invoice.status === 'Issued' || invoice.status === 'Paid' || invoice.status === 'Partially Paid')) {
+            // Find ALL cost transactions for this invoice
+            const costTransactions = await WalletTransaction.findAll({
+                where: { reference_id: invoice.id, reference_type: 'InvoiceCost', type: 'Expense' },
+                transaction
             });
 
-            const newPaidAmount = parseFloat(invoice.paid_amount) + paymentAmount;
-            const finalStatus = newPaidAmount >= parseFloat(invoice.total) ? 'Paid' : 'Partially Paid';
+            for (const tx of costTransactions) {
+                // Revert deduction (Add back to balance)
+                await WalletAccount.increment('balance', {
+                    by: tx.amount,
+                    where: { id: tx.account_id },
+                    transaction
+                });
+                await tx.destroy({ transaction });
+            }
+        }
 
-            await invoice.update({ 
-                status: finalStatus, 
-                paid_amount: newPaidAmount,
-                paid_at: finalStatus === 'Paid' ? new Date() : invoice.paid_at 
-            }, { transaction });
+        // 2. Income Logic for Payments
+        // Transition Logic: Adding Payment (Moving TO Paid or Partially Paid)
+        if ((status === 'Paid' || status === 'Partially Paid') && (invoice.status !== 'Paid' || status === 'Partially Paid')) {
+            if (!account_id && invoice.status !== 'Issued' && invoice.status !== 'Approved' && invoice.status !== 'Draft') {
+                // If it's just transitioning to Paid from Draft without setting account_id, we should block if amount > 0 and no account.
+                // But actually, we need an account to receive money.
+                if (!account_id) {
+                    await transaction.rollback();
+                    return res.status(400).json({ success: false, message: 'Please select a Wallet Account to receive funds' });
+                }
+            }
+
+            if (account_id) {
+                const paymentAmount = parseFloat(amount) || (parseFloat(invoice.total) - parseFloat(invoice.paid_amount));
+                
+                if (paymentAmount <= 0) {
+                    await transaction.rollback();
+                    return res.status(400).json({ success: false, message: 'Invalid payment amount' });
+                }
+
+                await WalletTransaction.create({
+                    account_id,
+                    type: 'Income',
+                    direction: 'In',
+                    amount: paymentAmount,
+                    reference_id: invoice.id,
+                    reference_type: 'Invoice',
+                    description: `Payment for Invoice #${invoice.invoice_number}`,
+                    tenant_id: invoice.tenant_id
+                }, { transaction });
+
+                await WalletAccount.increment('balance', { 
+                    by: paymentAmount, 
+                    where: { id: account_id }, 
+                    transaction 
+                });
+
+                const newPaidAmount = parseFloat(invoice.paid_amount) + paymentAmount;
+                const finalStatus = newPaidAmount >= parseFloat(invoice.total) ? 'Paid' : 'Partially Paid';
+                const finalPaymentStatus = newPaidAmount >= parseFloat(invoice.total) ? 'Paid' : 'Partial';
+
+                await invoice.update({ 
+                    status: finalStatus,
+                    payment_status: finalPaymentStatus,
+                    paid_amount: newPaidAmount,
+                    paid_at: finalStatus === 'Paid' ? new Date() : invoice.paid_at 
+                }, { transaction });
+            } else {
+                await invoice.update({ status }, { transaction });
+            }
         } 
-        // Transition Logic: Full Reversal (Moving to Draft/Cancelled)
+        // Transition Logic: Full Reversal of Payments (Moving to Draft/Cancelled)
         else if ((status === 'Draft' || status === 'Cancelled') && (invoice.status === 'Paid' || invoice.status === 'Partially Paid')) {
-            // Find ALL transactions for this invoice
-            const transactions = await WalletTransaction.findAll({
+            // Find ALL income transactions for this invoice
+            const incomeTransactions = await WalletTransaction.findAll({
                 where: { reference_id: invoice.id, reference_type: 'Invoice', type: 'Income' },
                 transaction
             });
 
-            for (const tx of transactions) {
+            for (const tx of incomeTransactions) {
                 await WalletAccount.decrement('balance', {
                     by: tx.amount,
                     where: { id: tx.account_id },
@@ -320,7 +475,7 @@ exports.updateStatus = async (req, res) => {
                 await tx.destroy({ transaction });
             }
 
-            await invoice.update({ status, paid_amount: 0, paid_at: null }, { transaction });
+            await invoice.update({ status, payment_status: 'Unpaid', paid_amount: 0, paid_at: null }, { transaction });
         }
         // General Status Change
         else {
@@ -344,8 +499,8 @@ exports.deleteInvoice = async (req, res) => {
         const invoice = await Invoice.findByPk(req.params.id);
         if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
         
-        if (invoice.status !== 'Draft') {
-            return res.status(400).json({ success: false, message: 'Only Draft invoices can be deleted' });
+        if (invoice.status !== 'Draft' && invoice.status !== 'Pending Approval') {
+            return res.status(400).json({ success: false, message: 'Only Draft/Pending invoices can be deleted' });
         }
 
         await invoice.destroy();

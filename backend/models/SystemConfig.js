@@ -9,17 +9,27 @@ const SystemConfig = sequelize.define('SystemConfig', {
   },
   key: {
     type: DataTypes.STRING(100),
-    allowNull: false,
-    unique: true
+    allowNull: false
   },
   value: {
     type: DataTypes.TEXT,
     allowNull: true
+  },
+  tenant_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'tenants',
+      key: 'id'
+    }
   }
 }, {
   tableName: 'system_configs',
   underscored: true,
-  timestamps: true
+  timestamps: true,
+  indexes: [
+    { unique: true, fields: ['key', 'tenant_id'] }
+  ]
 });
 
 module.exports = SystemConfig;

@@ -76,7 +76,7 @@ exports.getCustomerById = async (req, res) => {
           model: ServiceOrder, 
           limit: 20, 
           include: [
-            { model: ServiceType, attributes: ['name', 'sell_price'] },
+            { model: ServiceType, attributes: ['id', 'name'] },
             { model: Invoice, attributes: ['id', 'invoice_number', 'status'] }
           ],
           order: [['created_at', 'DESC']] 
