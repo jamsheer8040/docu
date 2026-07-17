@@ -6,7 +6,7 @@ module.exports = {
     await queryInterface.createTable('shareholders', {
       id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
       name: { type: Sequelize.STRING(255), allowNull: false },
-      shareholder_id: { type: Sequelize.STRING(50), allowNull: true, unique: true },
+      shareholder_id: { type: Sequelize.STRING(50), allowNull: true },
       email: { type: Sequelize.STRING(255), allowNull: true },
       mobile: { type: Sequelize.STRING(50), allowNull: true },
       nationality: { type: Sequelize.STRING(100), allowNull: true },
@@ -20,6 +20,11 @@ module.exports = {
       created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') },
       updated_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') },
       deleted_at: { type: Sequelize.DATE, allowNull: true }
+    });
+
+    await queryInterface.addIndex('shareholders', ['shareholder_id', 'tenant_id'], {
+      unique: true,
+      name: 'shareholders_shareholder_id_tenant_id_unique'
     });
 
     // 2. Create OwnershipChanges
