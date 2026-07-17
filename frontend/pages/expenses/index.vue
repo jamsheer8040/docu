@@ -230,6 +230,9 @@
 </template>
 
 <script setup>
+import { useUIStore } from '~/stores/ui'
+
+const uiStore = useUIStore()
 import { ref, computed, onMounted, watch } from 'vue';
 import { useExpenseStore } from '~/stores/expenses';
 import { useWalletStore } from '~/stores/wallet';
@@ -327,7 +330,7 @@ const onPaymentSubmit = async (data) => {
         payDialog.value = false;
         loadExpenses({ page: currentPage.value, itemsPerPage: itemsPerPage.value });
     } catch (err) {
-        alert('Payment processing failed');
+        uiStore.showError('Payment processing failed');
     }
 };
 

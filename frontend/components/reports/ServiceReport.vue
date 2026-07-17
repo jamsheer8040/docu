@@ -72,6 +72,9 @@
 </template>
 
 <script setup>
+import { useUIStore } from '~/stores/ui'
+
+const uiStore = useUIStore()
 import { ref, reactive, onMounted } from 'vue';
 
 const { $api } = useNuxtApp();
@@ -115,7 +118,7 @@ onMounted(() => {
 });
 
 const exportCSV = () => {
-  if (!items.value.length) return alert('No data to export');
+  if (!items.value.length) return uiStore.showError('No data to export');
   
   const csvHeaders = ['Service Name', 'Total Quantity Sold', 'Total Revenue', 'Total Cost', 'Gross Profit'];
   const rows = items.value.map(item => [

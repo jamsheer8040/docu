@@ -45,6 +45,12 @@ console.log('  Loaded: ServiceTypePricing');
 const ServiceOrder = require(path.join(__dirname, 'ServiceOrder.js'));
 console.log('  Loaded: ServiceOrder');
 
+const SalesOrder = require(path.join(__dirname, 'SalesOrder.js'));
+console.log('  Loaded: SalesOrder');
+
+const SalesOrderItem = require(path.join(__dirname, 'SalesOrderItem.js'));
+console.log('  Loaded: SalesOrderItem');
+
 // 6. Invoice
 const Invoice = require(path.join(__dirname, 'Invoice.js'));
 console.log('  Loaded: Invoice');
@@ -65,6 +71,15 @@ console.log('  Loaded: Expense');
 // 8. System Config
 const SystemConfig = require(path.join(__dirname, 'SystemConfig.js'));
 console.log('  Loaded: SystemConfig');
+
+// 7. Management / Shareholder
+const Shareholder = require(path.join(__dirname, 'Shareholder.js'));
+const OwnershipChange = require(path.join(__dirname, 'OwnershipChange.js'));
+const CapitalTransaction = require(path.join(__dirname, 'CapitalTransaction.js'));
+const DividendDeclaration = require(path.join(__dirname, 'DividendDeclaration.js'));
+const DividendDistribution = require(path.join(__dirname, 'DividendDistribution.js'));
+const DividendPayment = require(path.join(__dirname, 'DividendPayment.js'));
+console.log('  Loaded: Shareholder, CapitalTransaction, Dividends');
 
 // Define SaaS Associations
 Tenant.belongsTo(Plan, { foreignKey: 'plan_id' });
@@ -107,6 +122,12 @@ Tenant.hasMany(ServiceType, { foreignKey: 'tenant_id' });
 ServiceOrder.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 Tenant.hasMany(ServiceOrder, { foreignKey: 'tenant_id' });
 
+SalesOrder.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(SalesOrder, { foreignKey: 'tenant_id' });
+
+SalesOrderItem.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(SalesOrderItem, { foreignKey: 'tenant_id' });
+
 Invoice.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 Tenant.hasMany(Invoice, { foreignKey: 'tenant_id' });
 
@@ -124,6 +145,24 @@ Tenant.hasMany(ExpenseSubType, { foreignKey: 'tenant_id' });
 
 SystemConfig.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 Tenant.hasMany(SystemConfig, { foreignKey: 'tenant_id' });
+
+Shareholder.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(Shareholder, { foreignKey: 'tenant_id' });
+
+OwnershipChange.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(OwnershipChange, { foreignKey: 'tenant_id' });
+
+CapitalTransaction.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(CapitalTransaction, { foreignKey: 'tenant_id' });
+
+DividendDeclaration.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(DividendDeclaration, { foreignKey: 'tenant_id' });
+
+DividendDistribution.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(DividendDistribution, { foreignKey: 'tenant_id' });
+
+DividendPayment.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(DividendPayment, { foreignKey: 'tenant_id' });
 
 // Define Regular Associations
 User.belongsTo(Role, { foreignKey: 'role_id' });
@@ -147,6 +186,21 @@ Customer.hasMany(ServiceOrder, { foreignKey: 'customer_id' });
 ServiceOrder.belongsTo(ServiceType, { foreignKey: 'service_type_id' });
 ServiceType.hasMany(ServiceOrder, { foreignKey: 'service_type_id' });
 
+SalesOrder.belongsTo(Customer, { foreignKey: 'customer_id' });
+Customer.hasMany(SalesOrder, { foreignKey: 'customer_id' });
+
+SalesOrder.belongsTo(User, { foreignKey: 'sales_executive_id', as: 'SalesExecutive' });
+User.hasMany(SalesOrder, { foreignKey: 'sales_executive_id' });
+
+SalesOrderItem.belongsTo(SalesOrder, { foreignKey: 'sales_order_id' });
+SalesOrder.hasMany(SalesOrderItem, { foreignKey: 'sales_order_id' });
+
+SalesOrderItem.belongsTo(ServiceType, { foreignKey: 'service_type_id' });
+ServiceType.hasMany(SalesOrderItem, { foreignKey: 'service_type_id' });
+
+SalesOrderItem.belongsTo(ServiceOrder, { foreignKey: 'service_order_id' });
+ServiceOrder.hasOne(SalesOrderItem, { foreignKey: 'service_order_id' });
+
 ServiceTypePricing.belongsTo(ServiceType, { foreignKey: 'service_type_id' });
 ServiceType.hasMany(ServiceTypePricing, { foreignKey: 'service_type_id' });
 
@@ -167,6 +221,31 @@ ExpenseSubType.belongsTo(ExpenseType, { foreignKey: 'expense_type_id', as: 'Pare
 
 Expense.belongsTo(ExpenseSubType, { foreignKey: 'expense_sub_type_id', as: 'SubType' });
 ExpenseSubType.hasMany(Expense, { foreignKey: 'expense_sub_type_id' });
+
+// Management Relations
+OwnershipChange.belongsTo(Shareholder, { foreignKey: 'shareholder_id' });
+Shareholder.hasMany(OwnershipChange, { foreignKey: 'shareholder_id' });
+
+OwnershipChange.belongsTo(User, { foreignKey: 'user_id' });
+User.hasMany(OwnershipChange, { foreignKey: 'user_id' });
+
+CapitalTransaction.belongsTo(Shareholder, { foreignKey: 'shareholder_id' });
+Shareholder.hasMany(CapitalTransaction, { foreignKey: 'shareholder_id' });
+
+CapitalTransaction.belongsTo(WalletAccount, { foreignKey: 'wallet_id' });
+WalletAccount.hasMany(CapitalTransaction, { foreignKey: 'wallet_id' });
+
+DividendDistribution.belongsTo(DividendDeclaration, { foreignKey: 'declaration_id' });
+DividendDeclaration.hasMany(DividendDistribution, { foreignKey: 'declaration_id' });
+
+DividendDistribution.belongsTo(Shareholder, { foreignKey: 'shareholder_id' });
+Shareholder.hasMany(DividendDistribution, { foreignKey: 'shareholder_id' });
+
+DividendPayment.belongsTo(DividendDistribution, { foreignKey: 'distribution_id' });
+DividendDistribution.hasMany(DividendPayment, { foreignKey: 'distribution_id' });
+
+DividendPayment.belongsTo(WalletAccount, { foreignKey: 'wallet_id' });
+WalletAccount.hasMany(DividendPayment, { foreignKey: 'wallet_id' });
 
 console.log('[Models] All associations defined.');
 
@@ -265,12 +344,20 @@ const db = {
   ServiceType,
   ServiceTypePricing,
   ServiceOrder,
+  SalesOrder,
+  SalesOrderItem,
   Invoice,
   InvoiceItem,
   ExpenseType,
   ExpenseSubType,
   Expense,
-  SystemConfig
+  SystemConfig,
+  Shareholder,
+  OwnershipChange,
+  CapitalTransaction,
+  DividendDeclaration,
+  DividendDistribution,
+  DividendPayment
 };
 
 module.exports = db;

@@ -48,12 +48,14 @@ export default defineNuxtRouteMiddleware((to, from) => {
     const routePermissions: Record<string, string> = {
       '/customers': 'customers',
       '/documents': 'documents',
+      '/sales-orders': 'sales_orders',
       '/services': 'services',
       '/invoices': 'invoices',
       '/expenses': 'expenses',
       '/wallet': 'wallet',
       '/reports': 'reports',
-      '/settings': 'settings'
+      '/settings': 'settings',
+      '/management': 'management'
     };
 
     // Find if the current path (or any parent path) requires a permission

@@ -44,6 +44,12 @@ exports.listInvoices = async (req, res) => {
         
         if (status) whereClause.status = status;
         if (customer_id) whereClause.customer_id = customer_id;
+
+        // Restrict CustomerPortal users to only their linked customers
+        if (req.user && req.user.Role && req.user.Role.type === 'CustomerPortal') {
+            const linkedIds = req.user.LinkedCustomers ? req.user.LinkedCustomers.map(c => c.id) : [];
+            whereClause.customer_id = { [Op.in]: linkedIds };
+        }
         
         if (date_from || date_to) {
             whereClause.created_at = {};

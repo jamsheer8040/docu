@@ -175,6 +175,9 @@
 </template>
 
 <script setup>
+import { useUIStore } from '~/stores/ui'
+
+const uiStore = useUIStore()
 import { computed, onMounted } from 'vue';
 import { useInvoiceStore } from '~/stores/invoices';
 import InvoiceStatusChip from '~/components/invoices/InvoiceStatusChip.vue';
@@ -207,7 +210,7 @@ const shareWhatsApp = () => {
 const markAsPaid = () => {
     // This usually opens the Pay Dialog in the parent, but I'll 
     // emit a specific event or just alert the user to use the list action.
-    alert('Please use the "Mark as Paid" option in the main list to select a destination account.');
+    uiStore.showError('Please use the "Mark as Paid" option in the main list to select a destination account.');
 };
 
 const formatDate = (dateString) => {

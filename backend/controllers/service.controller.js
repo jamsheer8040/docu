@@ -1,4 +1,4 @@
-const { ServiceType, ServiceTypePricing, ServiceOrder, Customer, Invoice, InvoiceItem, sequelize } = require('../models/index.js');
+const { ServiceType, ServiceTypePricing, ServiceOrder, Customer, Invoice, InvoiceItem, SalesOrderItem, sequelize } = require('../models/index.js');
 const { Op } = require('sequelize');
 
 /**
@@ -124,6 +124,12 @@ exports.getServiceOrders = async (req, res, next) => {
     if (customer_id) where.customer_id = customer_id;
     if (criticality) where.criticality = criticality;
 
+    // Restrict CustomerPortal users to only their linked customers
+    if (req.user && req.user.Role && req.user.Role.type === 'CustomerPortal') {
+      const linkedIds = req.user.LinkedCustomers ? req.user.LinkedCustomers.map(c => c.id) : [];
+      where.customer_id = { [Op.in]: linkedIds };
+    }
+
     // Criticality sort: Critical=0, Moderate=1, Normal=2
     const order = sort === 'criticality'
       ? [[
@@ -223,11 +229,11 @@ exports.updateServiceOrderStatus = async (req, res, next) => {
     }
 
     // TRANSITION LOGIC
-    if (oldStatus === 'Pending' && status === 'InProgress') {
+    if (oldStatus === 'Pending' && status === 'In Progress') {
       // Start Service
       updates.started_at = new Date();
 
-    } else if (oldStatus === 'InProgress' && status === 'Completed') {
+    } else if (oldStatus === 'In Progress' && status === 'Completed') {
       // Complete Service — check invoice to determine which completed stage
       const invoice = await Invoice.findOne({
         where: { service_order_id: order.id, status: { [Op.ne]: 'Cancelled' } },
@@ -238,7 +244,7 @@ exports.updateServiceOrderStatus = async (req, res, next) => {
 
     } else if (
       (oldStatus === 'CompletedInvoicePending' || oldStatus === 'CompletedInvoiceCreated') &&
-      status === 'InProgress'
+      status === 'In Progress'
     ) {
       // REVERSAL — block if invoice is already processed
       const persistentInvoice = await Invoice.findOne({
@@ -259,6 +265,21 @@ exports.updateServiceOrderStatus = async (req, res, next) => {
     }
 
     await order.update(updates, { transaction });
+
+    // Sync status to SalesOrderItem
+    const salesOrderItem = await SalesOrderItem.findOne({
+      where: { service_order_id: order.id },
+      transaction
+    });
+
+    if (salesOrderItem) {
+      let soiStatus = updates.status || status;
+      if (soiStatus === 'CompletedInvoiceCreated' || soiStatus === 'CompletedInvoicePending') {
+        soiStatus = 'Completed';
+      }
+      await salesOrderItem.update({ status: soiStatus }, { transaction });
+    }
+
     await transaction.commit();
 
     const updatedOrder = await ServiceOrder.findByPk(order.id, {
@@ -274,7 +295,7 @@ exports.updateServiceOrderStatus = async (req, res, next) => {
     });
 
     let returnMessage = 'Status updated';
-    if (oldStatus === 'InProgress' && status === 'Completed') {
+    if (oldStatus === 'In Progress' && status === 'Completed') {
       returnMessage = updatedOrder.status === 'CompletedInvoiceCreated'
         ? 'Service completed — invoice already exists.'
         : 'Service completed — waiting for invoice to be created.';
@@ -316,7 +337,7 @@ exports.updateServiceOrder = async (req, res, next) => {
     const order = await ServiceOrder.findByPk(req.params.id);
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
-    if (!['Pending', 'InProgress'].includes(order.status)) {
+    if (!['Pending', 'In Progress'].includes(order.status)) {
       return res.status(400).json({
         success: false,
         message: 'Only Pending or In Progress service orders can be edited.'
@@ -390,7 +411,7 @@ async function generateInvoiceNumber(transaction) {
 
 /**
  * CRITICALITY ESCALATION ENGINE
- * Runs through all active (Pending/InProgress) orders and escalates
+ * Runs through all active (Pending/In Progress) orders and escalates
  * criticality based on days elapsed since creation.
  */
 exports.runEscalation = async (req, res, next) => {
@@ -414,7 +435,7 @@ exports.runEscalation = async (req, res, next) => {
 
     // Fetch all active orders
     const activeOrders = await ServiceOrder.findAll({
-      where: { status: { [Op.in]: ['Pending', 'InProgress'] } }
+      where: { status: { [Op.in]: ['Pending', 'In Progress'] } }
     });
 
     let escalatedCount = 0;

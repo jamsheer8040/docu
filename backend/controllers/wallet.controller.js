@@ -113,6 +113,13 @@ exports.transfer = async (req, res) => {
       description: `Transfer to ${to_account_id}: ${description || ''}`
     }, { transaction: t });
 
+    // Update from_account balance
+    await WalletAccount.decrement('balance', {
+      by: amount,
+      where: { id: from_account_id },
+      transaction: t
+    });
+
     // 3. Create In transaction
     await WalletTransaction.create({
       account_id: to_account_id,
@@ -121,6 +128,13 @@ exports.transfer = async (req, res) => {
       amount,
       description: `Transfer from ${from_account_id}: ${description || ''}`
     }, { transaction: t });
+
+    // Update to_account balance
+    await WalletAccount.increment('balance', {
+      by: amount,
+      where: { id: to_account_id },
+      transaction: t
+    });
 
     await t.commit();
     res.json({ success: true, message: 'Transfer completed successfully.' });
@@ -164,11 +178,14 @@ exports.createAccount = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Wallet name already exists' });
     }
 
-    const account = await WalletAccount.create({ name, description }, { transaction: t });
-    
     let balance = 0;
     if (opening_balance && parseFloat(opening_balance) > 0) {
       balance = parseFloat(opening_balance);
+    }
+
+    const account = await WalletAccount.create({ name, description, balance }, { transaction: t });
+    
+    if (balance > 0) {
       await WalletTransaction.create({
         account_id: account.id,
         type: 'Manual',

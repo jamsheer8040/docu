@@ -832,13 +832,15 @@ const systemModules = [
   { id: 'dashboard', name: 'dashboard', icon: 'mdi-view-dashboard' },
   { id: 'customers', name: 'customers', icon: 'mdi-account-group' },
   { id: 'documents', name: 'documents', icon: 'mdi-file-eye' },
+  { id: 'sales_orders', name: 'Sales Orders', icon: 'mdi-handshake-outline' },
   { id: 'services', name: 'services', icon: 'mdi-cog' },
   { id: 'invoices', name: 'invoices', icon: 'mdi-file-document-outline' },
   { id: 'expenses', name: 'expenses', icon: 'mdi-cash-remove' },
   { id: 'wallet', name: 'wallet', icon: 'mdi-wallet' },
   { id: 'reports', name: 'reports', icon: 'mdi-chart-line' },
   { id: 'settings', name: 'settings', icon: 'mdi-shield-lock' },
-  { id: 'financials', name: 'financials', icon: 'mdi-currency-usd' }
+  { id: 'financials', name: 'financials', icon: 'mdi-currency-usd' },
+  { id: 'management', name: 'management', icon: 'mdi-briefcase-account' }
 ];
 
 const customers = ref([]);

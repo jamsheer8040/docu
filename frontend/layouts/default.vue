@@ -57,6 +57,14 @@
             class="mb-2"
           ></v-list-item>
           <v-list-item
+            v-if="authStore.can('sales_orders')"
+            prepend-icon="mdi-handshake-outline"
+            title="Sales Orders"
+            to="/sales-orders"
+            color="primary"
+            class="mb-2"
+          ></v-list-item>
+          <v-list-item
             v-if="authStore.can('services')"
             prepend-icon="mdi-cog-outline"
             title="Services"
@@ -88,7 +96,14 @@
             color="primary"
             class="mb-2"
           ></v-list-item>
-
+          <v-list-item
+            v-if="authStore.can('management')"
+            prepend-icon="mdi-briefcase-account-outline"
+            title="Management"
+            to="/management"
+            color="primary"
+            class="mb-2"
+          ></v-list-item>
 
           <v-list-item
             v-if="authStore.isAdmin || authStore.can('reports')"

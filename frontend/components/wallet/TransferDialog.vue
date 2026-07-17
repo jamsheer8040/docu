@@ -96,6 +96,9 @@
 </template>
 
 <script setup>
+import { useUIStore } from '~/stores/ui'
+
+const uiStore = useUIStore()
 import { ref, computed, reactive } from 'vue';
 import { useWalletStore } from '~/stores/wallet';
 
@@ -156,7 +159,7 @@ const submit = async () => {
           // Reset form
           Object.assign(transferData, { from_account_id: null, to_account_id: null, amount: 0, description: '' });
         } else {
-          alert(result.message);
+          uiStore.showError(result.message);
         }
     } finally {
         loading.value = false;

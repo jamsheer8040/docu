@@ -284,12 +284,16 @@ exports.registerTenant = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Selected subscription plan not found.' });
     }
 
+    const trialEndsAt = new Date();
+    trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+
     // 4. Create Tenant
     const tenant = await Tenant.create({
       name: companyName,
       slug,
       plan_id: planId,
-      status: 'new_registration',
+      status: 'trial',
+      trial_ends_at: trialEndsAt,
       billing_cycle: billingCycle
     }, { transaction });
 
@@ -298,7 +302,7 @@ exports.registerTenant = async (req, res) => {
       tenant_id: tenant.id,
       action: 'Registration',
       old_status: null,
-      new_status: 'new_registration',
+      new_status: 'trial',
       plan_id: planId
     }, { transaction });
 
@@ -313,7 +317,9 @@ exports.registerTenant = async (req, res) => {
       wallet: { read: true, write: true, delete: true },
       reports: { read: true, write: true, delete: true },
       settings: { read: true, write: true, delete: true },
-      financials: { read: true, write: true, delete: true }
+      financials: { read: true, write: true, delete: true },
+      management: { read: true, write: true, delete: true },
+      sales_orders: { read: true, write: true, delete: true }
     };
 
     const adminRole = await Role.create({
@@ -334,7 +340,9 @@ exports.registerTenant = async (req, res) => {
         wallet: { read: false, write: false, delete: false },
         reports: { read: false, write: false, delete: false },
         settings: { read: false, write: false, delete: false },
-        financials: { read: false, write: false, delete: false }
+        financials: { read: false, write: false, delete: false },
+        management: { read: false, write: false, delete: false },
+        sales_orders: { read: true, write: true, delete: false }
       },
       tenant_id: tenant.id
     }, { transaction });
@@ -352,8 +360,11 @@ exports.registerTenant = async (req, res) => {
         wallet: { read: false, write: false, delete: false },
         reports: { read: false, write: false, delete: false },
         settings: { read: false, write: false, delete: false },
-        financials: { read: false, write: false, delete: false }
+        financials: { read: false, write: false, delete: false },
+        management: { read: false, write: false, delete: false },
+        sales_orders: { read: false, write: false, delete: false }
       },
+
       tenant_id: tenant.id
     }, { transaction });
 

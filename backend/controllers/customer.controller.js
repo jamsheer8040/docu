@@ -24,6 +24,12 @@ exports.getCustomers = async (req, res) => {
     ];
   }
 
+  // Restrict CustomerPortal users to only their linked customers
+  if (req.user && req.user.Role && req.user.Role.type === 'CustomerPortal') {
+    const linkedIds = req.user.LinkedCustomers ? req.user.LinkedCustomers.map(c => c.id) : [];
+    where.id = { [Op.in]: linkedIds };
+  }
+
   try {
     const { count, rows } = await Customer.findAndCountAll({
       where,

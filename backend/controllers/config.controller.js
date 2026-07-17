@@ -55,7 +55,8 @@ exports.updateConfigs = async (req, res) => {
     for (const [key, value] of Object.entries(settings)) {
       await SystemConfig.upsert({
         key,
-        value: typeof value === 'object' ? JSON.stringify(value) : String(value)
+        value: typeof value === 'object' ? JSON.stringify(value) : String(value),
+        tenant_id: req.user.tenant_id
       });
     }
     

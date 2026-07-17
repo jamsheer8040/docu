@@ -172,6 +172,9 @@
 </template>
 
 <script setup>
+import { useUIStore } from '~/stores/ui'
+
+const uiStore = useUIStore()
 import { ref, reactive, watch, onMounted } from 'vue';
 import { useNuxtApp } from '#imports';
 
@@ -291,7 +294,7 @@ const saveMainType = async () => {
       mainTypeDialog.value = false;
     }
   } catch (err) {
-    alert(err.response?.data?.message || 'Failed to save Main Type');
+    uiStore.showError(err.response?.data?.message || 'Failed to save Main Type');
   } finally {
     savingMain.value = false;
   }
@@ -303,7 +306,7 @@ const deleteMainType = async (item) => {
       await $api.delete(`/expense-types/${item.id}`);
       fetchMainTypes();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete');
+      uiStore.showError(err.response?.data?.message || 'Failed to delete');
     }
   }
 };
@@ -350,7 +353,7 @@ const saveSubType = async () => {
     await fetchMainTypes(); // Refresh counts
     subTypeDialog.value = false;
   } catch (err) {
-    alert(err.response?.data?.message || 'Failed to save Sub Type');
+    uiStore.showError(err.response?.data?.message || 'Failed to save Sub Type');
   } finally {
     savingSub.value = false;
   }
@@ -363,7 +366,7 @@ const deleteSubType = async (item) => {
       fetchSubTypes();
       fetchMainTypes();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete');
+      uiStore.showError(err.response?.data?.message || 'Failed to delete');
     }
   }
 };
