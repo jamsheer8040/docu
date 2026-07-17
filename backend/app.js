@@ -18,6 +18,7 @@ const {
 } = db;
 
 const app = express();
+app.set('trust proxy', 1);
 
 // 2. Load Routes
 const authRoutes = require('./routes/auth.routes');
