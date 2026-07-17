@@ -75,7 +75,7 @@ module.exports = {
     });
 
     // Indexes for Sales Orders
-    await queryInterface.addIndex('sales_orders', ['customer_id']);
+    await queryInterface.addIndex('sales_orders', ['customer_id'], { name: 'sales_orders_customer_id_idx' });
     await queryInterface.addIndex('sales_orders', ['order_number', 'tenant_id'], { unique: true });
 
     // 2. Create Sales Order Items Table
