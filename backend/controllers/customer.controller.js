@@ -35,15 +35,7 @@ exports.getCustomers = async (req, res) => {
       where,
       limit: parseInt(limit),
       offset: parseInt(offset),
-      order: [['name', 'ASC']],
-      include: [
-        { 
-          model: Document, 
-          limit: 3, 
-          include: [{ model: DocumentType, attributes: ['name'] }],
-          order: [['expiry_date', 'ASC']] 
-        }
-      ]
+      order: [['name', 'ASC']]
     });
 
     res.json({
