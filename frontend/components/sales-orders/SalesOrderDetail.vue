@@ -66,8 +66,14 @@
                 <v-chip size="small" :color="getStatusColor(item.status)" class="font-weight-bold">
                   {{ getStatusLabel(item.status) }}
                 </v-chip>
-                <div v-if="item.service_order_id" class="text-caption text-primary font-weight-bold mt-1">
-                  SRV-{{ String(item.service_order_id).padStart(5, '0') }}
+                <div v-if="item.status === 'CompletedInvoiceCreated' && item.invoice" class="mt-1">
+                  <span 
+                    class="text-caption text-primary font-weight-black cursor-pointer text-decoration-underline"
+                    @click="openInvoiceView(item.invoice)"
+                  >
+                    <v-icon size="x-small" icon="mdi-receipt-text-outline" class="mr-1"></v-icon>
+                    {{ item.invoice.invoice_number }}
+                  </span>
                 </div>
               </td>
               <td class="text-end">
@@ -106,6 +112,15 @@
       </v-card-text>
     </v-card>
   </v-dialog>
+
+  <!-- Invoice Detail View Dialog -->
+  <v-dialog v-model="invoiceDetailVisible" max-width="900px">
+    <InvoiceDetailView
+      v-if="invoiceDetailVisible"
+      :invoice-id="selectedInvoiceId"
+      @close="invoiceDetailVisible = false"
+    />
+  </v-dialog>
 </template>
 
 <script setup>
@@ -113,6 +128,7 @@ import { ref } from 'vue'
 import { useNuxtApp } from '#app'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '~/stores/ui'
+import InvoiceDetailView from '~/components/invoices/InvoiceDetailView.vue'
 
 const uiStore = useUIStore()
 
@@ -126,6 +142,13 @@ const { $api } = useNuxtApp()
 const router = useRouter()
 
 const pushing = ref(null)
+const invoiceDetailVisible = ref(false)
+const selectedInvoiceId = ref(null)
+
+const openInvoiceView = (invoice) => {
+  selectedInvoiceId.value = invoice.id
+  invoiceDetailVisible.value = true
+}
 
 const formatDate = (dateString) => {
   if (!dateString) return ''

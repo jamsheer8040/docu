@@ -1,4 +1,4 @@
-const { SalesOrder, SalesOrderItem, ServiceOrder, Customer, User, ServiceType, sequelize } = require('../models');
+const { SalesOrder, SalesOrderItem, ServiceOrder, Customer, User, ServiceType, Invoice, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
 /**
@@ -47,7 +47,13 @@ exports.getSalesOrderById = async (req, res) => {
           model: SalesOrderItem, 
           include: [
             { model: ServiceType, attributes: ['id', 'name'] },
-            { model: ServiceOrder, attributes: ['id', 'status'] }
+            { 
+              model: ServiceOrder, 
+              attributes: ['id', 'status'],
+              include: [
+                { model: Invoice, attributes: ['id', 'invoice_number'] }
+              ]
+            }
           ] 
         }
       ]
@@ -60,6 +66,9 @@ exports.getSalesOrderById = async (req, res) => {
       const itemData = item.toJSON();
       if (itemData.ServiceOrder) {
         itemData.status = itemData.ServiceOrder.status;
+        if (itemData.ServiceOrder.Invoice) {
+          itemData.invoice = itemData.ServiceOrder.Invoice;
+        }
       }
       return itemData;
     });
