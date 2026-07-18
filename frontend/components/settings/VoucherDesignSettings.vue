@@ -1009,7 +1009,6 @@ const submitCreateTemplate = async () => {
     payload.name = newTemplateName.value
     payload.voucher_type = newVoucherType.value
 
-    // If cloning, copy JSON configurations
     if (cloneFromTemplateId.value) {
       const parent = allTemplates.value.find(t => t.id === cloneFromTemplateId.value)
       if (parent) {
@@ -1029,26 +1028,25 @@ const submitCreateTemplate = async () => {
     const res = await $api.post('/voucher-designs', payload)
     if (res.data && res.data.success) {
       uiStore.showSnackbar({ text: 'Template variant created successfully', color: 'success' })
-      createDialog.value = false
       selectedVoucherType.value = newVoucherType.value
       
-      if (res.data.data) {
-        allTemplates.value.push(res.data.data)
-      }
-      
-      await loadAuditLogs()
-      // Select the new template
-      if (res.data.data) {
-        selectedTemplateId.value = res.data.data.id
-        onTemplateChange(res.data.data.id)
+      const newTemplate = res.data.data
+      if (newTemplate) {
+        allTemplates.value = [...allTemplates.value, newTemplate]
+        selectedTemplateId.value = newTemplate.id
+        activeTemplate.value = JSON.parse(JSON.stringify(newTemplate))
         mode.value = 'edit'
       }
+      
+      createDialog.value = false
+      await loadAuditLogs()
     }
   } catch (error) {
     console.error('Error creating template:', error)
     uiStore.showSnackbar({ text: error.message || 'Failed to create template variant', color: 'error' })
   } finally {
     creating.value = false
+    createDialog.value = false
   }
 }
 
