@@ -442,6 +442,15 @@
                 <template v-else-if="item.status === 'CompletedInvoiceCreated'">Completed – Inv. Created</template>
                 <template v-else>{{ item.status }}</template>
               </v-chip>
+              <div v-if="item.status === 'CompletedInvoiceCreated' && hasInvoice(item)" class="mt-1">
+                <span 
+                  class="text-caption text-primary font-weight-black cursor-pointer text-decoration-underline d-inline-flex align-center"
+                  @click="openInvoiceView(item.Invoice)"
+                >
+                  <v-icon size="x-small" icon="mdi-receipt-text-outline" class="mr-1"></v-icon>
+                  {{ item.Invoice?.invoice_number }}
+                </span>
+              </div>
             </template>
 
             <template v-slot:item.actions="{ item }">
