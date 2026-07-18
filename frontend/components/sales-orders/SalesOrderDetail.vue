@@ -141,18 +141,24 @@ const getStatusColor = (status) => {
   const map = {
     'Not Started': 'secondary',
     'Pending': 'warning',
-    'Assigned': 'info',
-    'In Progress': 'success',
-    'Waiting for Customer': 'orange',
-    'On Hold': 'deep-purple',
-    'Completed': 'green',
+    'In Progress': 'primary',
+    'CompletedInvoicePending': 'orange',
+    'CompletedInvoiceCreated': 'success',
     'Cancelled': 'error'
   }
   return map[status] || 'grey'
 }
 
 const getStatusLabel = (status) => {
-  return status || 'Not Started'
+  const map = {
+    'Not Started': 'Not Started',
+    'Pending': 'Pending',
+    'In Progress': 'In Progress',
+    'CompletedInvoicePending': 'Completed - Invoice Pending',
+    'CompletedInvoiceCreated': 'Completed - Invoice Created',
+    'Cancelled': 'Cancelled'
+  }
+  return map[status] || status || 'Not Started'
 }
 
 const pushService = async (item) => {

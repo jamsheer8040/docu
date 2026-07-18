@@ -273,10 +273,7 @@ exports.updateServiceOrderStatus = async (req, res, next) => {
     });
 
     if (salesOrderItem) {
-      let soiStatus = updates.status || status;
-      if (soiStatus === 'CompletedInvoiceCreated' || soiStatus === 'CompletedInvoicePending') {
-        soiStatus = 'Completed';
-      }
+      const soiStatus = updates.status || status;
       await salesOrderItem.update({ status: soiStatus }, { transaction });
     }
 

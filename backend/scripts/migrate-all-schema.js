@@ -129,6 +129,46 @@ async function run() {
     console.error('Error altering service_orders status ENUM:', e.message);
   }
 
+  // 10. Alter sales_order_items status ENUM & sync data from service_orders
+  try {
+    console.log('Altering sales_order_items status ENUM...');
+    
+    // Step 1: Temporarily expand status ENUM to include both old and new values to prevent truncation/data loss
+    await sequelize.query(`
+      ALTER TABLE sales_order_items 
+      MODIFY COLUMN status 
+      ENUM('Not Started', 'Pending', 'Assigned', 'In Progress', 'Waiting for Customer', 'On Hold', 'Completed', 'Cancelled', 'CompletedInvoicePending', 'CompletedInvoiceCreated') 
+      NOT NULL DEFAULT 'Not Started'
+    `);
+
+    // Step 2: Copy status from linked service_orders
+    await sequelize.query(`
+      UPDATE sales_order_items soi
+      JOIN service_orders so ON soi.service_order_id = so.id
+      SET soi.status = so.status
+      WHERE soi.service_order_id IS NOT NULL
+    `);
+
+    // Step 3: Migrate any non-linked 'Completed' items to 'CompletedInvoiceCreated'
+    await sequelize.query(`
+      UPDATE sales_order_items 
+      SET status = 'CompletedInvoiceCreated' 
+      WHERE status = 'Completed'
+    `);
+
+    // Step 4: Set final clean status ENUM matching the model definition
+    await sequelize.query(`
+      ALTER TABLE sales_order_items 
+      MODIFY COLUMN status 
+      ENUM('Not Started', 'Pending', 'In Progress', 'CompletedInvoicePending', 'CompletedInvoiceCreated', 'Cancelled') 
+      NOT NULL DEFAULT 'Not Started'
+    `);
+    
+    console.log('✓ Sales_order_items status ENUM verified and synced.');
+  } catch (e) {
+    console.error('Error altering sales_order_items status ENUM:', e.message);
+  }
+
   console.log('--- SCHEMA MIGRATION COMPLETED SUCCESSFULLY ---');
   process.exit(0);
 }

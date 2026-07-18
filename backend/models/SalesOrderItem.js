@@ -43,7 +43,7 @@ const SalesOrderItem = sequelize.define('SalesOrderItem', {
     allowNull: false
   },
   status: {
-    type: DataTypes.ENUM('Not Started', 'Pending', 'Assigned', 'In Progress', 'Waiting for Customer', 'On Hold', 'Completed', 'Cancelled'),
+    type: DataTypes.ENUM('Not Started', 'Pending', 'In Progress', 'CompletedInvoicePending', 'CompletedInvoiceCreated', 'Cancelled'),
     defaultValue: 'Not Started',
     allowNull: false
   },
