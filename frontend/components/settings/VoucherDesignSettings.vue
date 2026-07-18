@@ -946,7 +946,7 @@ const makeDefault = async () => {
   }
 }
 
-// Delete design template
+// Delete design template (from edit view)
 const deleteTemplate = async () => {
   if (!activeTemplate.value) return
   if (confirm(`Are you sure you want to delete template variant "${activeTemplate.value.name}"?`)) {
@@ -954,9 +954,14 @@ const deleteTemplate = async () => {
       const res = await $api.delete(`/voucher-designs/${activeTemplate.value.id}`)
       if (res.data && res.data.success) {
         uiStore.showSnackbar({ text: res.data.message, color: 'success' })
-        allTemplates.value = allTemplates.value.filter(t => t.id !== activeTemplate.value.id)
         backToList()
-        await loadAuditLogs()
+        const listRes = await $api.get('/voucher-designs')
+        if (listRes.data && listRes.data.success) {
+          allTemplates.value = listRes.data.data
+        }
+        tableKey.value++
+        await nextTick()
+        loadAuditLogs().catch(() => {})
       }
     } catch (error) {
       console.error('Error deleting template:', error)
@@ -971,14 +976,20 @@ const makeDefaultList = async (item) => {
     const res = await $api.put(`/voucher-designs/${item.id}/default`)
     if (res.data && res.data.success) {
       uiStore.showSnackbar({ text: res.data.message, color: 'success' })
-      await loadTemplates()
-      await loadAuditLogs()
+      const listRes = await $api.get('/voucher-designs')
+      if (listRes.data && listRes.data.success) {
+        allTemplates.value = listRes.data.data
+      }
+      tableKey.value++
+      await nextTick()
+      loadAuditLogs().catch(() => {})
     }
   } catch (error) {
     console.error('Error setting default:', error)
   }
 }
 
+// Delete design template (from list view)
 const deleteTemplateList = async (item) => {
   if (!item) return
   if (confirm(`Are you sure you want to delete template variant "${item.name}"?`)) {
@@ -986,8 +997,13 @@ const deleteTemplateList = async (item) => {
       const res = await $api.delete(`/voucher-designs/${item.id}`)
       if (res.data && res.data.success) {
         uiStore.showSnackbar({ text: res.data.message, color: 'success' })
-        allTemplates.value = allTemplates.value.filter(t => t.id !== item.id)
-        await loadAuditLogs()
+        const listRes = await $api.get('/voucher-designs')
+        if (listRes.data && listRes.data.success) {
+          allTemplates.value = listRes.data.data
+        }
+        tableKey.value++
+        await nextTick()
+        loadAuditLogs().catch(() => {})
       }
     } catch (error) {
       console.error('Error deleting template:', error)
