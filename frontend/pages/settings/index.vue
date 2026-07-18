@@ -1,30 +1,42 @@
 <template>
   <v-container fluid class="pa-6">
-    <!-- Header -->
     <v-row class="mb-4 align-center">
-      <v-col cols="12" md="6">
+      <v-col cols="12">
         <h1 class="text-h4 font-weight-bold color-primary">
           <v-icon icon="mdi-cog-outline" class="mr-2" color="primary"></v-icon>
           System Settings
         </h1>
-        <p class="text-subtitle-1 text-grey-darken-1">Manage users, roles, and global configurations</p>
-      </v-col>
-      <v-col cols="12" md="6" class="d-flex justify-md-end">
-        <v-tabs v-model="activeTab" color="primary" align-tabs="end" class="settings-tabs">
-          <v-tab value="services" prepend-icon="mdi-cog-box">Services</v-tab>
-          <v-tab value="doc-types" prepend-icon="mdi-file-cog">Doc Types</v-tab>
-          <v-tab value="users" prepend-icon="mdi-account-group">Users</v-tab>
-          <v-tab value="roles" prepend-icon="mdi-shield-account">Roles</v-tab>
-          <v-tab value="general" prepend-icon="mdi-tune">General</v-tab>
-          <v-tab value="subscription" prepend-icon="mdi-card-account-details-star-outline">Subscription</v-tab>
-          <v-tab value="taxes" prepend-icon="mdi-cash-register">Taxes</v-tab>
-          <v-tab value="voucher-design" prepend-icon="mdi-pencil-ruler">Voucher Design</v-tab>
-        </v-tabs>
+        <p class="text-subtitle-1 text-grey-darken-1">Manage users, roles, layouts, and global configurations</p>
       </v-col>
     </v-row>
 
+    <!-- Main Content Grid -->
+    <v-row>
+      <!-- Left Vertical Menu -->
+      <v-col cols="12" md="3">
+        <v-card border flat class="rounded-xl pa-2 bg-white elevation-1">
+          <v-list density="comfortable" nav class="pa-0">
+            <v-list-item
+              v-for="tab in tabs"
+              :key="tab.value"
+              :value="tab.value"
+              :prepend-icon="tab.icon"
+              :active="activeTab === tab.value"
+              @click="activeTab = tab.value"
+              class="rounded-lg mb-1 font-weight-bold text-slate-700"
+              color="primary"
+            >
+              <v-list-item-title>{{ tab.title }}</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-card>
+      </v-col>
+
+      <!-- Right Settings Content Panel -->
+      <v-col cols="12" md="9" class="pt-0 pt-md-3">
+
     <!-- Main Content -->
-    <v-window v-model="activeTab" class="mt-6">
+    <v-window v-model="activeTab">
       <!-- Service Catalog Management -->
       <v-window-item value="services">
         <v-card class="border" border>
@@ -542,6 +554,8 @@
         <VoucherDesignSettings />
       </v-window-item>
     </v-window>
+  </v-col>
+</v-row>
 
     <!-- Dialog User -->
     <v-dialog v-model="userDialog" max-width="500">
@@ -738,6 +752,17 @@ import VoucherDesignSettings from '@/components/settings/VoucherDesignSettings.v
 const { $api } = useNuxtApp();
 
 const activeTab = ref('services');
+
+const tabs = [
+  { value: 'services', title: 'Services', icon: 'mdi-cog-box' },
+  { value: 'doc-types', title: 'Doc Types', icon: 'mdi-file-cog' },
+  { value: 'users', title: 'Users', icon: 'mdi-account-group' },
+  { value: 'roles', title: 'Roles', icon: 'mdi-shield-account' },
+  { value: 'general', title: 'General', icon: 'mdi-tune' },
+  { value: 'subscription', title: 'Subscription', icon: 'mdi-card-account-details-star-outline' },
+  { value: 'taxes', title: 'Taxes', icon: 'mdi-cash-register' },
+  { value: 'voucher-design', title: 'Voucher Design', icon: 'mdi-pencil-ruler' }
+]
 const auth = useAuthStore();
 const serviceStore = useServiceStore();
 const loading = ref(false);
