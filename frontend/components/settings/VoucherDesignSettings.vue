@@ -7,78 +7,45 @@
       </div>
       <div class="d-flex align-center gap-2">
         <v-btn-toggle v-model="currentTab" mandatory color="primary" variant="outlined" density="comfortable" class="mr-2 bg-white">
-          <v-btn value="design" prepend-icon="mdi-pencil-ruler">Design Panel</v-btn>
+          <v-btn value="design" prepend-icon="mdi-pencil-ruler">Templates</v-btn>
           <v-btn value="audit" prepend-icon="mdi-history">Audit Log</v-btn>
         </v-btn-toggle>
-        <v-btn color="primary" prepend-icon="mdi-plus" @click="openCreateDialog" class="font-weight-bold text-none rounded-lg">
+        <v-btn v-if="currentTab === 'design' && mode === 'list'" color="primary" prepend-icon="mdi-plus" @click="openCreateDialog" class="font-weight-bold text-none rounded-lg">
           New Template
+        </v-btn>
+        <v-btn v-if="currentTab === 'design' && mode === 'edit'" color="grey-darken-2" variant="outlined" prepend-icon="mdi-arrow-left" @click="backToList" class="font-weight-bold text-none rounded-lg bg-white">
+          Back to List
         </v-btn>
       </div>
     </div>
 
-    <!-- Active Template Selector -->
-    <v-row class="mb-4">
-      <v-col cols="12" md="4">
-        <v-select
-          v-model="selectedVoucherType"
-          :items="voucherTypes"
-          label="Voucher Type"
-          density="comfortable"
-          variant="outlined"
-          class="bg-white"
-          hide-details
-          @update:model-value="loadTemplates"
-        ></v-select>
-      </v-col>
-      <v-col cols="12" md="4">
-        <v-select
-          v-model="selectedTemplateId"
-          :items="filteredTemplates"
-          item-title="name"
-          item-value="id"
-          label="Select Template Variant"
-          density="comfortable"
-          variant="outlined"
-          class="bg-white"
-          hide-details
-          @update:model-value="onTemplateChange"
-        >
-          <template v-slot:item="{ props: itemProps, item }">
-            <v-list-item v-bind="itemProps">
-              <template v-slot:append>
-                <v-chip v-if="item.raw.is_default" color="success" size="x-small" class="font-weight-bold">DEFAULT</v-chip>
-              </template>
-            </v-list-item>
-          </template>
-        </v-select>
-      </v-col>
-      <v-col cols="12" md="4" class="d-flex align-center justify-end">
-        <v-btn
-          v-if="activeTemplate && !activeTemplate.is_default"
-          color="success"
-          variant="outlined"
-          class="font-weight-bold text-none mr-2 bg-white rounded-lg"
-          prepend-icon="mdi-check-decagram"
-          @click="makeDefault"
-        >
-          Set Default
-        </v-btn>
-        <v-btn
-          v-if="activeTemplate"
-          color="error"
-          variant="outlined"
-          class="font-weight-bold text-none bg-white rounded-lg"
-          prepend-icon="mdi-delete-outline"
-          :disabled="activeTemplate.is_default"
-          @click="deleteTemplate"
-        >
-          Delete
-        </v-btn>
-      </v-col>
-    </v-row>
+    <!-- Templates List View -->
+    <v-card v-if="currentTab === 'design' && mode === 'list'" border flat class="rounded-xl bg-white mb-4">
+      <v-data-table
+        :headers="templateHeaders"
+        :items="allTemplates"
+        hover
+      >
+        <template v-slot:item.is_default="{ item }">
+          <v-chip v-if="item.is_default" color="success" size="small" class="font-weight-bold">DEFAULT</v-chip>
+        </template>
+        <template v-slot:item.actions="{ item }">
+          <v-btn size="small" variant="text" color="primary" icon="mdi-pencil" @click="editTemplate(item)" title="Manage Design"></v-btn>
+          <v-btn size="small" variant="text" color="success" icon="mdi-check-decagram" :disabled="item.is_default" @click="makeDefaultList(item)" title="Set as Default"></v-btn>
+          <v-btn size="small" variant="text" color="error" icon="mdi-delete" :disabled="item.is_default" @click="deleteTemplateList(item)" title="Delete"></v-btn>
+        </template>
+      </v-data-table>
+    </v-card>
 
-    <!-- Main Workspace -->
-    <v-row v-if="currentTab === 'design' && activeTemplate">
+    <!-- Main Workspace (Edit View) -->
+    <div v-if="currentTab === 'design' && mode === 'edit' && activeTemplate">
+      <div class="mb-4 d-flex align-center gap-3">
+        <h3 class="text-h6 font-weight-bold">Editing: {{ activeTemplate.name }} ({{ activeTemplate.voucher_type }})</h3>
+        <v-chip v-if="activeTemplate.is_default" color="success" size="small" class="font-weight-bold">DEFAULT</v-chip>
+        <v-spacer></v-spacer>
+        <v-btn v-if="!activeTemplate.is_default" color="success" variant="outlined" prepend-icon="mdi-check-decagram" @click="makeDefault" class="font-weight-bold text-none rounded-lg bg-white">Set Default</v-btn>
+      </div>
+      <v-row>
       <!-- 1. Design Controls Panel -->
       <v-col cols="12" lg="6">
         <v-card border flat class="rounded-xl px-4 py-3 bg-white elevation-1">
@@ -612,6 +579,7 @@
         </div>
       </v-col>
     </v-row>
+    </div>
 
     <!-- 3. Audit Logs Panel -->
     <v-card v-else-if="currentTab === 'audit'" border flat class="rounded-xl pa-4 bg-white elevation-1">
@@ -743,10 +711,18 @@ const uiStore = useUIStore()
 
 // Component States
 const currentTab = ref('design')
+const mode = ref('list')
 const selectedVoucherType = ref('Invoice')
 const selectedTemplateId = ref(null)
 const allTemplates = ref([])
 const auditLogs = ref([])
+
+const templateHeaders = [
+  { title: 'Template Name', key: 'name', sortable: true },
+  { title: 'Voucher Type', key: 'voucher_type', sortable: true },
+  { title: 'Status', key: 'is_default', sortable: false },
+  { title: 'Actions', key: 'actions', align: 'end', sortable: false }
+]
 
 // Dialog States
 const createDialog = ref(false)
@@ -859,20 +835,25 @@ const loadTemplates = async () => {
     if (res.data && res.data.success) {
       allTemplates.value = res.data.data
       
-      // Auto select default or first one matching active category
-      const typeTemplates = allTemplates.value.filter(t => t.voucher_type === selectedVoucherType.value)
-      if (typeTemplates.length > 0) {
-        const def = typeTemplates.find(t => t.is_default) || typeTemplates[0]
-        selectedTemplateId.value = def.id
-        onTemplateChange(def.id)
-      } else {
-        activeTemplate.value = null
-        selectedTemplateId.value = null
+      // Update active template if in edit mode
+      if (mode.value === 'edit' && activeTemplate.value) {
+        onTemplateChange(activeTemplate.value.id)
       }
     }
   } catch (error) {
     console.error('Error loading templates:', error)
   }
+}
+
+const editTemplate = (item) => {
+  onTemplateChange(item.id)
+  mode.value = 'edit'
+}
+
+const backToList = () => {
+  activeTemplate.value = null
+  selectedTemplateId.value = null
+  mode.value = 'list'
 }
 
 // Load logs from API
@@ -971,6 +952,38 @@ const deleteTemplate = async () => {
       const res = await $api.delete(`/voucher-designs/${activeTemplate.value.id}`)
       if (res.data && res.data.success) {
         uiStore.showSnackbar({ text: res.data.message, color: 'success' })
+        backToList()
+        await loadTemplates()
+        await loadAuditLogs()
+      }
+    } catch (error) {
+      console.error('Error deleting template:', error)
+      uiStore.showSnackbar({ text: error.message || 'Failed to delete template', color: 'error' })
+    }
+  }
+}
+
+const makeDefaultList = async (item) => {
+  if (!item) return
+  try {
+    const res = await $api.put(`/voucher-designs/${item.id}/default`)
+    if (res.data && res.data.success) {
+      uiStore.showSnackbar({ text: res.data.message, color: 'success' })
+      await loadTemplates()
+      await loadAuditLogs()
+    }
+  } catch (error) {
+    console.error('Error setting default:', error)
+  }
+}
+
+const deleteTemplateList = async (item) => {
+  if (!item) return
+  if (confirm(`Are you sure you want to delete template variant "${item.name}"?`)) {
+    try {
+      const res = await $api.delete(`/voucher-designs/${item.id}`)
+      if (res.data && res.data.success) {
+        uiStore.showSnackbar({ text: res.data.message, color: 'success' })
         await loadTemplates()
         await loadAuditLogs()
       }
@@ -1024,6 +1037,7 @@ const submitCreateTemplate = async () => {
       if (res.data.data) {
         selectedTemplateId.value = res.data.data.id
         onTemplateChange(res.data.data.id)
+        mode.value = 'edit'
       }
     }
   } catch (error) {
