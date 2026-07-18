@@ -1028,18 +1028,30 @@ const submitCreateTemplate = async () => {
     const res = await $api.post('/voucher-designs', payload)
     if (res.data && res.data.success) {
       uiStore.showSnackbar({ text: 'Template variant created successfully', color: 'success' })
-      selectedVoucherType.value = newVoucherType.value
       
-      const newTemplate = res.data.data
-      if (newTemplate) {
-        allTemplates.value = [...allTemplates.value, newTemplate]
-        selectedTemplateId.value = newTemplate.id
-        activeTemplate.value = JSON.parse(JSON.stringify(newTemplate))
-        mode.value = 'edit'
+      // Close dialog immediately
+      createDialog.value = false
+      creating.value = false
+      
+      // Reload templates from server to guarantee fresh data in the list
+      await loadTemplates()
+      
+      // Try to enter edit mode for the new template
+      try {
+        if (res.data.data && res.data.data.id) {
+          selectedVoucherType.value = newVoucherType.value
+          selectedTemplateId.value = res.data.data.id
+          onTemplateChange(res.data.data.id)
+          mode.value = 'edit'
+        }
+      } catch (e) {
+        console.error('Error entering edit mode:', e)
       }
       
-      createDialog.value = false
-      await loadAuditLogs()
+      // Load audit logs in background, don't block
+      loadAuditLogs().catch(() => {})
+    } else {
+      uiStore.showSnackbar({ text: 'Failed to create template', color: 'error' })
     }
   } catch (error) {
     console.error('Error creating template:', error)
