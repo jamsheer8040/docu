@@ -856,8 +856,8 @@ const visibleColumns = computed(() => {
 const loadTemplates = async () => {
   try {
     const res = await $api.get('/voucher-designs')
-    if (res.success && res.data) {
-      allTemplates.value = res.data
+    if (res.data && res.data.success) {
+      allTemplates.value = res.data.data
       
       // Auto select default or first one matching active category
       const typeTemplates = allTemplates.value.filter(t => t.voucher_type === selectedVoucherType.value)
@@ -879,8 +879,8 @@ const loadTemplates = async () => {
 const loadAuditLogs = async () => {
   try {
     const res = await $api.get('/voucher-designs/audit-logs')
-    if (res.success && res.data) {
-      auditLogs.value = res.data
+    if (res.data && res.data.success) {
+      auditLogs.value = res.data.data
     }
   } catch (error) {
     console.error('Error loading audit logs:', error)
@@ -935,7 +935,7 @@ const saveChanges = async () => {
   saving.value = true
   try {
     const res = await $api.put(`/voucher-designs/${activeTemplate.value.id}`, activeTemplate.value)
-    if (res.success) {
+    if (res.data && res.data.success) {
       uiStore.showSnackbar({ text: 'Voucher design updated successfully', color: 'success' })
       await loadTemplates()
       await loadAuditLogs()
@@ -953,8 +953,8 @@ const makeDefault = async () => {
   if (!activeTemplate.value) return
   try {
     const res = await $api.put(`/voucher-designs/${activeTemplate.value.id}/default`)
-    if (res.success) {
-      uiStore.showSnackbar({ text: res.message, color: 'success' })
+    if (res.data && res.data.success) {
+      uiStore.showSnackbar({ text: res.data.message, color: 'success' })
       await loadTemplates()
       await loadAuditLogs()
     }
@@ -969,8 +969,8 @@ const deleteTemplate = async () => {
   if (confirm(`Are you sure you want to delete template variant "${activeTemplate.value.name}"?`)) {
     try {
       const res = await $api.delete(`/voucher-designs/${activeTemplate.value.id}`)
-      if (res.success) {
-        uiStore.showSnackbar({ text: res.message, color: 'success' })
+      if (res.data && res.data.success) {
+        uiStore.showSnackbar({ text: res.data.message, color: 'success' })
         await loadTemplates()
         await loadAuditLogs()
       }
@@ -1014,16 +1014,16 @@ const submitCreateTemplate = async () => {
     }
 
     const res = await $api.post('/voucher-designs', payload)
-    if (res.success) {
+    if (res.data && res.data.success) {
       uiStore.showSnackbar({ text: 'Template variant created successfully', color: 'success' })
       createDialog.value = false
       selectedVoucherType.value = newVoucherType.value
       await loadTemplates()
       await loadAuditLogs()
       // Select the new template
-      if (res.data) {
-        selectedTemplateId.value = res.data.id
-        onTemplateChange(res.data.id)
+      if (res.data.data) {
+        selectedTemplateId.value = res.data.data.id
+        onTemplateChange(res.data.data.id)
       }
     }
   } catch (error) {
