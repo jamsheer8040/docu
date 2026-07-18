@@ -22,6 +22,7 @@
     <!-- Templates List View -->
     <v-card v-if="currentTab === 'design' && mode === 'list'" border flat class="rounded-xl bg-white mb-4">
       <v-data-table
+        :key="tableKey"
         :headers="templateHeaders"
         :items="allTemplates"
         hover
@@ -702,7 +703,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useNuxtApp } from '#app'
 import { useUIStore } from '~/stores/ui'
 
@@ -716,6 +717,7 @@ const selectedVoucherType = ref('Invoice')
 const selectedTemplateId = ref(null)
 const allTemplates = ref([])
 const auditLogs = ref([])
+const tableKey = ref(0)
 
 const templateHeaders = [
   { title: 'Template Name', key: 'name', sortable: true },
@@ -1027,28 +1029,26 @@ const submitCreateTemplate = async () => {
 
     const res = await $api.post('/voucher-designs', payload)
     if (res.data && res.data.success) {
-      uiStore.showSnackbar({ text: 'Template variant created successfully', color: 'success' })
-      
-      // Close dialog immediately
+      // 1. Close dialog and stop spinner immediately
       createDialog.value = false
       creating.value = false
-      
-      // Reload templates from server to guarantee fresh data in the list
-      await loadTemplates()
-      
-      // Try to enter edit mode for the new template
-      try {
-        if (res.data.data && res.data.data.id) {
-          selectedVoucherType.value = newVoucherType.value
-          selectedTemplateId.value = res.data.data.id
-          onTemplateChange(res.data.data.id)
-          mode.value = 'edit'
-        }
-      } catch (e) {
-        console.error('Error entering edit mode:', e)
+
+      // 2. Fetch fresh list from the server
+      const listRes = await $api.get('/voucher-designs')
+      if (listRes.data && listRes.data.success) {
+        allTemplates.value = listRes.data.data
       }
-      
-      // Load audit logs in background, don't block
+
+      // 3. Force the data table to re-render
+      tableKey.value++
+      await nextTick()
+
+      uiStore.showSnackbar({ text: 'Template variant created successfully', color: 'success' })
+
+      // 4. Stay on list view so user sees the new template
+      mode.value = 'list'
+
+      // 5. Audit logs in background
       loadAuditLogs().catch(() => {})
     } else {
       uiStore.showSnackbar({ text: 'Failed to create template', color: 'error' })
