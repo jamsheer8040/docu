@@ -221,6 +221,16 @@ exports.createInvoice = async (req, res) => {
                 await order.update({
                     status: 'CompletedInvoiceCreated'
                 }, { transaction });
+
+                // Sync status to SalesOrderItem
+                const SalesOrderItem = require('../models/SalesOrderItem');
+                const salesOrderItem = await SalesOrderItem.findOne({
+                    where: { service_order_id: order.id },
+                    transaction
+                });
+                if (salesOrderItem) {
+                    await salesOrderItem.update({ status: 'CompletedInvoiceCreated' }, { transaction });
+                }
             }
         }
 
@@ -337,6 +347,16 @@ exports.updateInvoice = async (req, res) => {
                 await order.update({
                     status: 'CompletedInvoiceCreated'
                 }, { transaction });
+
+                // Sync status to SalesOrderItem
+                const SalesOrderItem = require('../models/SalesOrderItem');
+                const salesOrderItem = await SalesOrderItem.findOne({
+                    where: { service_order_id: order.id },
+                    transaction
+                });
+                if (salesOrderItem) {
+                    await salesOrderItem.update({ status: 'CompletedInvoiceCreated' }, { transaction });
+                }
             }
         }
 

@@ -32,6 +32,19 @@ async function run() {
         }
       }
     }
+
+    console.log('Aligning all SalesOrderItems status with their linked ServiceOrders...');
+    const allSalesItems = await SalesOrderItem.findAll();
+    for (const item of allSalesItems) {
+      if (item.service_order_id) {
+        const linkedOrder = await ServiceOrder.findByPk(item.service_order_id);
+        if (linkedOrder && item.status !== linkedOrder.status) {
+          console.log(`Updating SalesOrderItem #${item.id} status to match ServiceOrder #${linkedOrder.id}: "${linkedOrder.status}"`);
+          await item.update({ status: linkedOrder.status });
+        }
+      }
+    }
+
     console.log('Success! DB Statuses fixed.');
   } catch (err) {
     console.error('Error:', err);
