@@ -169,6 +169,17 @@ async function run() {
     console.error('Error altering sales_order_items status ENUM:', e.message);
   }
 
+  // 11. Sync Voucher Design and Audit tables
+  try {
+    console.log('Verifying Voucher Design tables...');
+    const { VoucherDesign, VoucherDesignAuditLog } = require('../models');
+    await VoucherDesign.sync({ alter: true });
+    await VoucherDesignAuditLog.sync({ alter: true });
+    console.log('✓ Voucher Design tables verified and synced.');
+  } catch (e) {
+    console.error('Error verifying Voucher Design tables:', e.message);
+  }
+
   console.log('--- SCHEMA MIGRATION COMPLETED SUCCESSFULLY ---');
   process.exit(0);
 }

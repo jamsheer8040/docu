@@ -81,9 +81,24 @@ const DividendDistribution = require(path.join(__dirname, 'DividendDistribution.
 const DividendPayment = require(path.join(__dirname, 'DividendPayment.js'));
 console.log('  Loaded: Shareholder, CapitalTransaction, Dividends');
 
+// 8. Voucher Design & Audit Logs
+const VoucherDesign = require(path.join(__dirname, 'VoucherDesign.js'));
+const VoucherDesignAuditLog = require(path.join(__dirname, 'VoucherDesignAuditLog.js'));
+console.log('  Loaded: VoucherDesign, VoucherDesignAuditLog');
+
 // Define SaaS Associations
 Tenant.belongsTo(Plan, { foreignKey: 'plan_id' });
 Plan.hasMany(Tenant, { foreignKey: 'plan_id' });
+
+// Voucher Design & Audit Scoping
+VoucherDesign.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(VoucherDesign, { foreignKey: 'tenant_id' });
+
+VoucherDesignAuditLog.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(VoucherDesignAuditLog, { foreignKey: 'tenant_id' });
+
+VoucherDesignAuditLog.belongsTo(User, { foreignKey: 'user_id' });
+User.hasMany(VoucherDesignAuditLog, { foreignKey: 'user_id' });
 
 TenantInvoice.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 Tenant.hasMany(TenantInvoice, { foreignKey: 'tenant_id' });
@@ -357,7 +372,9 @@ const db = {
   CapitalTransaction,
   DividendDeclaration,
   DividendDistribution,
-  DividendPayment
+  DividendPayment,
+  VoucherDesign,
+  VoucherDesignAuditLog
 };
 
 module.exports = db;

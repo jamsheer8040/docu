@@ -18,6 +18,7 @@
           <v-tab value="general" prepend-icon="mdi-tune">General</v-tab>
           <v-tab value="subscription" prepend-icon="mdi-card-account-details-star-outline">Subscription</v-tab>
           <v-tab value="taxes" prepend-icon="mdi-cash-register">Taxes</v-tab>
+          <v-tab value="voucher-design" prepend-icon="mdi-pencil-ruler">Voucher Design</v-tab>
         </v-tabs>
       </v-col>
     </v-row>
@@ -535,6 +536,11 @@
           </v-data-table>
         </v-card>
       </v-window-item>
+      
+      <!-- Voucher Design Settings -->
+      <v-window-item value="voucher-design">
+        <VoucherDesignSettings />
+      </v-window-item>
     </v-window>
 
     <!-- Dialog User -->
@@ -727,6 +733,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useServiceStore } from '@/stores/services';
 import ServiceTypeForm from '@/components/services/ServiceTypeForm.vue';
+import VoucherDesignSettings from '@/components/settings/VoucherDesignSettings.vue';
 
 const { $api } = useNuxtApp();
 

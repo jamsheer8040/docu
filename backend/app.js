@@ -40,6 +40,7 @@ const saasRoutes = require('./routes/saas.routes');
 const taxRoutes = require('./routes/tax.routes');
 const salesOrderRoutes = require('./routes/sales-order.routes');
 const managementRoutes = require('./routes/management.routes');
+const voucherDesignRoutes = require('./routes/voucher-design.routes');
 
 // Sync Database in development
 sequelize.sync()
@@ -232,6 +233,7 @@ app.use('/api/v1/saas', saasRoutes);
 app.use('/api/v1/taxes', taxRoutes);
 app.use('/api/v1/sales-orders', salesOrderRoutes);
 app.use('/api/v1/management', managementRoutes);
+app.use('/api/v1/voucher-designs', voucherDesignRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
