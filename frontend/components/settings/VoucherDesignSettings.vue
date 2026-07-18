@@ -952,8 +952,8 @@ const deleteTemplate = async () => {
       const res = await $api.delete(`/voucher-designs/${activeTemplate.value.id}`)
       if (res.data && res.data.success) {
         uiStore.showSnackbar({ text: res.data.message, color: 'success' })
+        allTemplates.value = allTemplates.value.filter(t => t.id !== activeTemplate.value.id)
         backToList()
-        await loadTemplates()
         await loadAuditLogs()
       }
     } catch (error) {
@@ -984,7 +984,7 @@ const deleteTemplateList = async (item) => {
       const res = await $api.delete(`/voucher-designs/${item.id}`)
       if (res.data && res.data.success) {
         uiStore.showSnackbar({ text: res.data.message, color: 'success' })
-        await loadTemplates()
+        allTemplates.value = allTemplates.value.filter(t => t.id !== item.id)
         await loadAuditLogs()
       }
     } catch (error) {
