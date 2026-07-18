@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid class="pa-6">
+  <v-container class="pa-6" style="max-width: 1400px">
     <v-row class="mb-4 align-center">
       <v-col cols="12">
         <h1 class="text-h4 font-weight-bold color-primary">
@@ -13,7 +13,7 @@
     <!-- Main Content Grid -->
     <v-row>
       <!-- Left Vertical Menu -->
-      <v-col cols="12" md="3">
+      <v-col cols="12" md="2" lg="2">
         <v-card border flat class="rounded-xl pa-2 bg-white elevation-1">
           <v-list density="comfortable" nav class="pa-0">
             <v-list-item
@@ -33,7 +33,7 @@
       </v-col>
 
       <!-- Right Settings Content Panel -->
-      <v-col cols="12" md="9" class="pt-0 pt-md-3">
+      <v-col cols="12" md="10" lg="10" class="pt-0 pt-md-3">
 
     <!-- Main Content -->
     <v-window v-model="activeTab">
