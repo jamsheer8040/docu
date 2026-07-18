@@ -1,5 +1,48 @@
 const { VoucherDesign, VoucherDesignAuditLog, User } = require('../models');
 
+const parseTemplateJsonFields = (template) => {
+  if (!template) return template;
+  const fields = [
+    'header_config',
+    'info_config',
+    'table_config',
+    'totals_config',
+    'footer_config',
+    'branding_config',
+    'print_config',
+    'number_format'
+  ];
+  const raw = template.toJSON ? template.toJSON() : template;
+  fields.forEach(field => {
+    if (raw[field] !== undefined && raw[field] !== null) {
+      if (typeof raw[field] === 'string') {
+        try {
+          raw[field] = JSON.parse(raw[field]);
+        } catch (e) {
+          console.error(`Error parsing field ${field}:`, e);
+        }
+      }
+    }
+  });
+  return raw;
+};
+
+const parseAuditLogJsonFields = (log) => {
+  if (!log) return log;
+  const raw = log.toJSON ? log.toJSON() : log;
+  if (raw.previous_values !== undefined && raw.previous_values !== null) {
+    if (typeof raw.previous_values === 'string') {
+      try { raw.previous_values = JSON.parse(raw.previous_values); } catch(e){}
+    }
+  }
+  if (raw.new_values !== undefined && raw.new_values !== null) {
+    if (typeof raw.new_values === 'string') {
+      try { raw.new_values = JSON.parse(raw.new_values); } catch(e){}
+    }
+  }
+  return raw;
+};
+
 /**
  * List all voucher templates
  */
@@ -8,7 +51,7 @@ exports.listTemplates = async (req, res) => {
     const templates = await VoucherDesign.findAll({
       order: [['voucher_type', 'ASC'], ['is_default', 'DESC'], ['name', 'ASC']]
     });
-    res.json({ success: true, data: templates });
+    res.json({ success: true, data: templates.map(parseTemplateJsonFields) });
   } catch (error) {
     console.error('[VoucherDesignController] listTemplates error:', error);
     res.status(500).json({ success: false, message: 'Server error listing templates' });
@@ -24,7 +67,7 @@ exports.getTemplate = async (req, res) => {
     if (!template) {
       return res.status(404).json({ success: false, message: 'Template not found' });
     }
-    res.json({ success: true, data: template });
+    res.json({ success: true, data: parseTemplateJsonFields(template) });
   } catch (error) {
     console.error('[VoucherDesignController] getTemplate error:', error);
     res.status(500).json({ success: false, message: 'Server error fetching template' });
@@ -86,7 +129,7 @@ exports.createTemplate = async (req, res) => {
       tenant_id
     });
 
-    res.status(201).json({ success: true, data: template, message: 'Template created successfully' });
+    res.status(201).json({ success: true, data: parseTemplateJsonFields(template), message: 'Template created successfully' });
   } catch (error) {
     console.error('[VoucherDesignController] createTemplate error:', error);
     res.status(500).json({ success: false, message: 'Server error creating template' });
@@ -148,7 +191,7 @@ exports.updateTemplate = async (req, res) => {
       tenant_id: req.user.tenant_id || 1
     });
 
-    res.json({ success: true, data: template, message: 'Template updated successfully' });
+    res.json({ success: true, data: parseTemplateJsonFields(template), message: 'Template updated successfully' });
   } catch (error) {
     console.error('[VoucherDesignController] updateTemplate error:', error);
     res.status(500).json({ success: false, message: 'Server error updating template' });
@@ -237,7 +280,7 @@ exports.getAuditLogs = async (req, res) => {
       ],
       order: [['created_at', 'DESC']]
     });
-    res.json({ success: true, data: logs });
+    res.json({ success: true, data: logs.map(parseAuditLogJsonFields) });
   } catch (error) {
     console.error('[VoucherDesignController] getAuditLogs error:', error);
     res.status(500).json({ success: false, message: 'Server error listing audit logs' });
