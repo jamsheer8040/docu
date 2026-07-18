@@ -946,27 +946,35 @@ const makeDefault = async () => {
   }
 }
 
+// Shared helper to refresh the data table after any mutation
+const refreshTable = async () => {
+  try {
+    const res = await $api.get('/voucher-designs')
+    if (res.data && res.data.success) {
+      allTemplates.value = res.data.data
+      tableKey.value = Date.now()
+      await nextTick()
+    }
+  } catch (e) {
+    console.error('Error refreshing templates:', e)
+  }
+}
+
 // Delete design template (from edit view)
 const deleteTemplate = async () => {
   if (!activeTemplate.value) return
-  if (confirm(`Are you sure you want to delete template variant "${activeTemplate.value.name}"?`)) {
-    try {
-      const res = await $api.delete(`/voucher-designs/${activeTemplate.value.id}`)
-      if (res.data && res.data.success) {
-        uiStore.showSnackbar({ text: res.data.message, color: 'success' })
-        backToList()
-        const listRes = await $api.get('/voucher-designs')
-        if (listRes.data && listRes.data.success) {
-          allTemplates.value = listRes.data.data
-        }
-        tableKey.value++
-        await nextTick()
-        loadAuditLogs().catch(() => {})
-      }
-    } catch (error) {
-      console.error('Error deleting template:', error)
-      uiStore.showSnackbar({ text: error.message || 'Failed to delete template', color: 'error' })
+  if (!window.confirm(`Are you sure you want to delete template "${activeTemplate.value.name}"?`)) return
+  try {
+    const res = await $api.delete(`/voucher-designs/${activeTemplate.value.id}`)
+    if (res.data && res.data.success) {
+      uiStore.showSnackbar({ text: res.data.message, color: 'success' })
+      backToList()
+      await refreshTable()
+      loadAuditLogs().catch(() => {})
     }
+  } catch (error) {
+    console.error('Error deleting template:', error)
+    uiStore.showSnackbar({ text: error.message || 'Failed to delete template', color: 'error' })
   }
 }
 
@@ -976,12 +984,7 @@ const makeDefaultList = async (item) => {
     const res = await $api.put(`/voucher-designs/${item.id}/default`)
     if (res.data && res.data.success) {
       uiStore.showSnackbar({ text: res.data.message, color: 'success' })
-      const listRes = await $api.get('/voucher-designs')
-      if (listRes.data && listRes.data.success) {
-        allTemplates.value = listRes.data.data
-      }
-      tableKey.value++
-      await nextTick()
+      await refreshTable()
       loadAuditLogs().catch(() => {})
     }
   } catch (error) {
@@ -992,23 +995,18 @@ const makeDefaultList = async (item) => {
 // Delete design template (from list view)
 const deleteTemplateList = async (item) => {
   if (!item) return
-  if (confirm(`Are you sure you want to delete template variant "${item.name}"?`)) {
-    try {
-      const res = await $api.delete(`/voucher-designs/${item.id}`)
-      if (res.data && res.data.success) {
-        uiStore.showSnackbar({ text: res.data.message, color: 'success' })
-        const listRes = await $api.get('/voucher-designs')
-        if (listRes.data && listRes.data.success) {
-          allTemplates.value = listRes.data.data
-        }
-        tableKey.value++
-        await nextTick()
-        loadAuditLogs().catch(() => {})
-      }
-    } catch (error) {
-      console.error('Error deleting template:', error)
-      uiStore.showSnackbar({ text: error.message || 'Failed to delete template', color: 'error' })
+  if (!window.confirm(`Are you sure you want to delete template "${item.name}"?`)) return
+  try {
+    const delId = item.id
+    const res = await $api.delete(`/voucher-designs/${delId}`)
+    if (res.data && res.data.success) {
+      uiStore.showSnackbar({ text: res.data.message, color: 'success' })
+      await refreshTable()
+      loadAuditLogs().catch(() => {})
     }
+  } catch (error) {
+    console.error('Error deleting template:', error)
+    uiStore.showSnackbar({ text: error.message || 'Failed to delete template', color: 'error' })
   }
 }
 
@@ -1049,22 +1047,15 @@ const submitCreateTemplate = async () => {
       createDialog.value = false
       creating.value = false
 
-      // 2. Fetch fresh list from the server
-      const listRes = await $api.get('/voucher-designs')
-      if (listRes.data && listRes.data.success) {
-        allTemplates.value = listRes.data.data
-      }
-
-      // 3. Force the data table to re-render
-      tableKey.value++
-      await nextTick()
+      // 2. Refresh the table with fresh data from server
+      await refreshTable()
 
       uiStore.showSnackbar({ text: 'Template variant created successfully', color: 'success' })
 
-      // 4. Stay on list view so user sees the new template
+      // 3. Stay on list view so user sees the new template
       mode.value = 'list'
 
-      // 5. Audit logs in background
+      // 4. Audit logs in background
       loadAuditLogs().catch(() => {})
     } else {
       uiStore.showSnackbar({ text: 'Failed to create template', color: 'error' })
