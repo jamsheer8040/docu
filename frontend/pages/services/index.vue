@@ -161,6 +161,7 @@
                       >Start Service</v-btn>
                     </div>
                     <div class="d-flex justify-end mt-2 pt-2 border-t">
+                      <v-btn v-if="auth.can('services', 'write')" icon="mdi-close-circle-outline" variant="text" size="x-small" color="warning" class="mr-1" title="Cancel Order" @click.stop="updateStatus(order, 'Cancelled')"></v-btn>
                       <v-btn v-if="auth.can('services', 'write') && !hasInvoice(order)" icon="mdi-pencil-outline" variant="text" size="x-small" color="primary" class="mr-1" @click.stop="openEditOrderForm(order)"></v-btn>
                       <v-btn v-if="auth.can('services', 'delete')" icon="mdi-delete-outline" variant="text" size="x-small" color="error" @click.stop="confirmDeleteOrder(order)"></v-btn>
                     </div>
@@ -235,8 +236,9 @@
                         class="ml-1"
                       >Complete Service</v-btn>
                     </div>
-                    <div v-if="auth.can('services', 'write') && !hasInvoice(order)" class="d-flex justify-end mt-2 pt-2 border-t">
-                      <v-btn icon="mdi-pencil-outline" variant="text" size="x-small" color="primary" @click.stop="openEditOrderForm(order)"></v-btn>
+                    <div class="d-flex justify-end mt-2 pt-2 border-t">
+                      <v-btn v-if="auth.can('services', 'write')" icon="mdi-close-circle-outline" variant="text" size="x-small" color="warning" class="mr-1" title="Cancel Order" @click.stop="updateStatus(order, 'Cancelled')"></v-btn>
+                      <v-btn v-if="auth.can('services', 'write') && !hasInvoice(order)" icon="mdi-pencil-outline" variant="text" size="x-small" color="primary" @click.stop="openEditOrderForm(order)"></v-btn>
                     </div>
                   </v-card-text>
                 </v-card>
@@ -474,6 +476,15 @@
                 class="mr-1"
                 @click="confirmOrderCompletion(item)"
               >Complete</v-btn>
+              <v-btn
+                v-if="['Pending', 'In Progress'].includes(item.status) && auth.can('services', 'write')"
+                prepend-icon="mdi-close-circle-outline"
+                variant="tonal"
+                size="x-small"
+                color="warning"
+                class="mr-1"
+                @click="updateStatus(item, 'Cancelled')"
+              >Cancel</v-btn>
               <v-btn
                 v-if="item.status === 'CompletedInvoicePending' && auth.can('invoices', 'write')"
                 prepend-icon="mdi-receipt-text-plus"
