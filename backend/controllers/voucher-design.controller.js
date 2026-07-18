@@ -52,7 +52,7 @@ exports.createTemplate = async (req, res) => {
       number_format
     } = req.body;
 
-    const tenant_id = req.user.tenant_id;
+    const tenant_id = req.user.tenant_id || 1;
 
     // Check if this is the first template for this type - if so, make it default
     const existingCount = await VoucherDesign.count({ where: { voucher_type } });
@@ -145,7 +145,7 @@ exports.updateTemplate = async (req, res) => {
       action: 'UPDATE',
       previous_values,
       new_values,
-      tenant_id: req.user.tenant_id
+      tenant_id: req.user.tenant_id || 1
     });
 
     res.json({ success: true, data: template, message: 'Template updated successfully' });
@@ -180,7 +180,7 @@ exports.deleteTemplate = async (req, res) => {
       template_name: template.name,
       action: 'DELETE',
       previous_values,
-      tenant_id: req.user.tenant_id
+      tenant_id: req.user.tenant_id || 1
     });
 
     res.json({ success: true, message: 'Template deleted successfully' });
@@ -216,7 +216,7 @@ exports.setDefaultTemplate = async (req, res) => {
       template_name: template.name,
       action: 'SET_DEFAULT',
       new_values: { is_default: true },
-      tenant_id: req.user.tenant_id
+      tenant_id: req.user.tenant_id || 1
     });
 
     res.json({ success: true, message: `"${template.name}" is now the default template for ${template.voucher_type}.` });

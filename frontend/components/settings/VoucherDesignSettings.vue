@@ -736,8 +736,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useNuxtApp } from '#app'
+import { useUIStore } from '~/stores/ui'
 
 const { $api } = useNuxtApp()
+const uiStore = useUIStore()
 
 // Component States
 const currentTab = ref('design')
@@ -1026,6 +1028,7 @@ const submitCreateTemplate = async () => {
     }
   } catch (error) {
     console.error('Error creating template:', error)
+    uiStore.showSnackbar({ text: error.message || 'Failed to create template variant', color: 'error' })
   } finally {
     creating.value = false
   }
@@ -1056,17 +1059,6 @@ const viewAuditDetail = (log) => {
   logDetailDialog.value = true
 }
 
-const uiStore = {
-  showSnackbar(opt) {
-    // Falls back to browser native if pinia store is missing/customizing
-    try {
-      const store = useUIStore()
-      store.showSnackbar(opt)
-    } catch (e) {
-      alert(opt.text)
-    }
-  }
-}
 
 // Load initialization data
 onMounted(async () => {
