@@ -1031,7 +1031,11 @@ const submitCreateTemplate = async () => {
       uiStore.showSnackbar({ text: 'Template variant created successfully', color: 'success' })
       createDialog.value = false
       selectedVoucherType.value = newVoucherType.value
-      await loadTemplates()
+      
+      if (res.data.data) {
+        allTemplates.value.push(res.data.data)
+      }
+      
       await loadAuditLogs()
       // Select the new template
       if (res.data.data) {
