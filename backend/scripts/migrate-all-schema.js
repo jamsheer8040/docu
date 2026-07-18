@@ -102,13 +102,29 @@ async function run() {
     await sequelize.query(
       `UPDATE service_orders SET status = 'CompletedInvoiceCreated' WHERE status = 'Completed'`
     );
+    
+    // Step 1: Temporarily modify status ENUM to include both space and no-space variants to avoid truncation
     await sequelize.query(
       `ALTER TABLE service_orders 
        MODIFY COLUMN status 
-       ENUM('Pending','InProgress','CompletedInvoicePending','CompletedInvoiceCreated','Cancelled') 
+       ENUM('Pending','InProgress','In Progress','CompletedInvoicePending','CompletedInvoiceCreated','Cancelled') 
        NOT NULL DEFAULT 'Pending'`
     );
-    console.log('✓ Service_orders status ENUM verified.');
+
+    // Step 2: Migrate any 'InProgress' value to 'In Progress'
+    await sequelize.query(
+      `UPDATE service_orders SET status = 'In Progress' WHERE status = 'InProgress'`
+    );
+
+    // Step 3: Set status ENUM to the final clean set matching the frontend and backend models
+    await sequelize.query(
+      `ALTER TABLE service_orders 
+       MODIFY COLUMN status 
+       ENUM('Pending','In Progress','CompletedInvoicePending','CompletedInvoiceCreated','Cancelled') 
+       NOT NULL DEFAULT 'Pending'`
+    );
+    
+    console.log('✓ Service_orders status ENUM verified and migrated to "In Progress".');
   } catch (e) {
     console.error('Error altering service_orders status ENUM:', e.message);
   }
