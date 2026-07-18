@@ -606,6 +606,7 @@
                   </div>
                   <span>Authorized Signatory</span>
                 </div>
+              </div>
             </div>
           </v-card>
         </div>
