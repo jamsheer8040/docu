@@ -70,7 +70,7 @@
         prepend-icon="mdi-whatsapp"
         @click.stop="sendReminder"
        >
-         Remind
+         Remind ({{ document.reminder_count || 0 }})
        </v-btn>
     </v-card-actions>
   </v-card>
@@ -80,8 +80,10 @@
 import { computed } from 'vue';
 import { useWhatsApp } from '~/composables/useWhatsApp';
 import { useAuthStore } from '~/stores/auth';
+import { useDocumentStore } from '~/stores/documents';
 
 const auth = useAuthStore();
+const documentStore = useDocumentStore();
 const config = useRuntimeConfig();
 const props = defineProps({
   document: {
@@ -138,7 +140,7 @@ const formatDate = (dateString) => {
   return new Intl.DateTimeFormat('en-GB').format(date);
 };
 
-const sendReminder = () => {
+const sendReminder = async () => {
   if (!props.document.Customer?.phone_whatsapp) return;
   const num = props.document.Customer.phone_whatsapp;
   const msg = MESSAGES.docReminder(
@@ -148,6 +150,12 @@ const sendReminder = () => {
     formatDate(props.document.expiry_date)
   );
   openWhatsApp(num, msg);
+
+  try {
+    await documentStore.incrementReminderCount(props.document.id);
+  } catch (err) {
+    console.error('Failed to increment reminder count:', err);
+  }
 };
 </script>
 

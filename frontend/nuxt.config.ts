@@ -67,7 +67,8 @@ export default defineNuxtConfig({
   },
   nitro: {
     routeRules: {
-      '/api/**': { proxy: 'http://localhost:5000/api/**' }
+      '/api/**': { proxy: 'http://localhost:5000/api/**' },
+      '/uploads/**': { proxy: 'http://localhost:5000/uploads/**' }
     }
   },
   typescript: {

@@ -25,7 +25,7 @@ const Tenant = sequelize.define('Tenant', {
     }
   },
   status: {
-    type: DataTypes.ENUM('new_registration', 'trial', 'active', 'suspended', 'expired', 'trial_expired', 'cancelled', 'unpaid'),
+    type: DataTypes.ENUM('new_registration', 'trial', 'active', 'suspended', 'expired', 'trial_expired', 'cancelled'),
     allowNull: false,
     defaultValue: 'new_registration'
   },

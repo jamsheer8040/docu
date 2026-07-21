@@ -65,6 +65,7 @@ const Shareholder = sequelize.define('Shareholder', {
   tableName: 'shareholders',
   timestamps: true,
   paranoid: true, // soft deletes
+  underscored: true,
   indexes: [
     {
       unique: true,

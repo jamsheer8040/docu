@@ -9,16 +9,19 @@ const Plan = require(path.join(__dirname, 'Plan.js'));
 const Tenant = require(path.join(__dirname, 'Tenant.js'));
 const TenantInvoice = require(path.join(__dirname, 'TenantInvoice.js'));
 const TenantHistory = require(path.join(__dirname, 'TenantHistory.js'));
-console.log('  Loaded: Plan, Tenant, TenantInvoice, TenantHistory');
+const PromoCode = require(path.join(__dirname, 'PromoCode.js'));
+console.log('  Loaded: Plan, Tenant, TenantInvoice, TenantHistory, PromoCode');
 
 // 1. User & Role
 const User = require(path.join(__dirname, 'User.js'));
 const Role = require(path.join(__dirname, 'Role.js'));
 console.log('  Loaded: User, Role');
 
-// 2. Customer
+// 2. Customer & Lead
 const Customer = require(path.join(__dirname, 'Customer.js'));
-console.log('  Loaded: Customer');
+const Lead = require(path.join(__dirname, 'Lead.js'));
+const LeadStatusHistory = require(path.join(__dirname, 'LeadStatusHistory.js'));
+console.log('  Loaded: Customer, Lead, LeadStatusHistory');
 
 // 3. Document & DocumentType
 const Document = require(path.join(__dirname, 'Document.js'));
@@ -115,6 +118,26 @@ Tenant.hasMany(Role, { foreignKey: 'tenant_id' });
 
 Customer.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 Tenant.hasMany(Customer, { foreignKey: 'tenant_id' });
+
+Lead.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(Lead, { foreignKey: 'tenant_id' });
+
+Lead.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
+User.hasMany(Lead, { foreignKey: 'created_by' });
+
+Lead.belongsTo(Customer, { foreignKey: 'customer_id', as: 'Customer' });
+Customer.hasMany(Lead, { foreignKey: 'customer_id' });
+
+LeadStatusHistory.belongsTo(Lead, { foreignKey: 'lead_id', onDelete: 'CASCADE' });
+Lead.hasMany(LeadStatusHistory, { foreignKey: 'lead_id', as: 'StatusHistories' });
+
+Lead.belongsTo(ServiceType, { foreignKey: 'service_id', as: 'Service' });
+ServiceType.hasMany(Lead, { foreignKey: 'service_id' });
+
+LeadStatusHistory.belongsTo(User, { foreignKey: 'changed_by', as: 'ChangedBy' });
+User.hasMany(LeadStatusHistory, { foreignKey: 'changed_by' });
+
+Lead.belongsTo(User, { foreignKey: 'converted_by', as: 'ConvertedBy' });
 
 Document.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 Tenant.hasMany(Document, { foreignKey: 'tenant_id' });
@@ -267,7 +290,7 @@ console.log('[Models] All associations defined.');
 // Add Global Hooks for Automatic Tenant Scoping
 const tenantContext = require('../utils/tenantContext');
 
-sequelize.addHook('beforeFind', function(options) {
+sequelize.addHook('beforeFind', function (options) {
   const tenantId = tenantContext.getStore();
   if (tenantId !== undefined && tenantId !== null) {
     if (this.rawAttributes && this.rawAttributes.tenant_id) {
@@ -279,7 +302,7 @@ sequelize.addHook('beforeFind', function(options) {
   }
 });
 
-sequelize.addHook('beforeBulkUpdate', function(options) {
+sequelize.addHook('beforeBulkUpdate', function (options) {
   const tenantId = tenantContext.getStore();
   if (tenantId !== undefined && tenantId !== null) {
     if (this.rawAttributes && this.rawAttributes.tenant_id) {
@@ -291,7 +314,7 @@ sequelize.addHook('beforeBulkUpdate', function(options) {
   }
 });
 
-sequelize.addHook('beforeBulkDestroy', function(options) {
+sequelize.addHook('beforeBulkDestroy', function (options) {
   const tenantId = tenantContext.getStore();
   if (tenantId !== undefined && tenantId !== null) {
     if (this.rawAttributes && this.rawAttributes.tenant_id) {
@@ -303,7 +326,7 @@ sequelize.addHook('beforeBulkDestroy', function(options) {
   }
 });
 
-sequelize.addHook('beforeValidate', function(instance, options) {
+sequelize.addHook('beforeValidate', function (instance, options) {
   const tenantId = tenantContext.getStore();
   if (tenantId !== undefined && tenantId !== null) {
     if (instance.constructor.rawAttributes && instance.constructor.rawAttributes.tenant_id && (instance.tenant_id === undefined || instance.tenant_id === null)) {
@@ -312,7 +335,7 @@ sequelize.addHook('beforeValidate', function(instance, options) {
   }
 });
 
-sequelize.addHook('beforeCount', function(options) {
+sequelize.addHook('beforeCount', function (options) {
   const tenantId = tenantContext.getStore();
   if (tenantId !== undefined && tenantId !== null) {
     if (this.rawAttributes && this.rawAttributes.tenant_id) {
@@ -326,7 +349,7 @@ sequelize.addHook('beforeCount', function(options) {
 
 // Patch Model.aggregate to enforce tenant isolation since it bypasses beforeFind hooks
 const originalAggregate = Sequelize.Model.aggregate;
-Sequelize.Model.aggregate = async function(field, aggregateFunction, options) {
+Sequelize.Model.aggregate = async function (field, aggregateFunction, options) {
   options = options || {};
   const tenantId = tenantContext.getStore();
   if (tenantId !== undefined && tenantId !== null) {
@@ -348,9 +371,12 @@ const db = {
   Tenant,
   TenantInvoice,
   TenantHistory,
+  PromoCode,
   User,
   Role,
   Customer,
+  Lead,
+  LeadStatusHistory,
   Document,
   DocumentType,
   Tax,

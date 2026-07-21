@@ -6,7 +6,20 @@
           <span class="text-h5 font-weight-black text-primary mr-3">{{ order.order_number }}</span>
           <v-chip size="small" color="secondary" variant="flat" class="font-weight-bold">{{ formatDate(order.order_date) }}</v-chip>
         </div>
-        <v-btn icon="mdi-close" variant="text" @click="$emit('update:modelValue', false)"></v-btn>
+        <div>
+          <v-btn
+            color="primary"
+            variant="tonal"
+            prepend-icon="mdi-download"
+            class="mr-4 text-none font-weight-bold"
+            rounded="lg"
+            @click="downloadProforma"
+            :loading="downloading"
+          >
+            Download Proforma Invoice
+          </v-btn>
+          <v-btn icon="mdi-close" variant="text" @click="$emit('update:modelValue', false)"></v-btn>
+        </div>
       </v-card-title>
 
       <v-card-text class="pa-6 bg-transparent" style="max-height: 80vh">
@@ -142,8 +155,30 @@ const { $api } = useNuxtApp()
 const router = useRouter()
 
 const pushing = ref(null)
+const downloading = ref(false)
 const invoiceDetailVisible = ref(false)
 const selectedInvoiceId = ref(null)
+
+const downloadProforma = async () => {
+  if (!props.order?.id) return
+  downloading.value = true
+  try {
+    const res = await $api.get(`/sales-orders/${props.order.id}/proforma-pdf`, { responseType: 'blob' })
+    const url = window.URL.createObjectURL(new Blob([res.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `Proforma_Invoice_${props.order.order_number}.pdf`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Failed to download proforma pdf', error)
+    uiStore.showError('Failed to download Proforma Invoice')
+  } finally {
+    downloading.value = false
+  }
+}
 
 const openInvoiceView = (invoice) => {
   selectedInvoiceId.value = invoice.id

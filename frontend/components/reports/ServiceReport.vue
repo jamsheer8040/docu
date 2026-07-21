@@ -66,6 +66,15 @@
         <template v-slot:item.gross_profit="{ item }">
           <span class="text-success font-weight-bold">AED {{ parseFloat(item.gross_profit || 0).toFixed(2) }}</span>
         </template>
+        <template v-slot:tfoot>
+          <tr v-if="items.length > 0" class="bg-grey-lighten-4 font-weight-black">
+            <td class="text-right">Total:</td>
+            <td class="text-center">{{ currentTotals.total_quantity }}</td>
+            <td class="text-right">AED {{ currentTotals.total_revenue.toFixed(2) }}</td>
+            <td class="text-right text-error">AED {{ currentTotals.total_cost.toFixed(2) }}</td>
+            <td class="text-right text-success">AED {{ currentTotals.gross_profit.toFixed(2) }}</td>
+          </tr>
+        </template>
       </v-data-table>
     </v-card>
   </v-container>
@@ -75,7 +84,7 @@
 import { useUIStore } from '~/stores/ui'
 
 const uiStore = useUIStore()
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 
 const { $api } = useNuxtApp();
 
@@ -85,6 +94,16 @@ const items = ref([]);
 const filters = reactive({
   from: '',
   to: ''
+});
+
+const currentTotals = computed(() => {
+  return items.value.reduce((acc, curr) => {
+    acc.total_quantity += parseInt(curr.total_quantity || 0)
+    acc.total_revenue += parseFloat(curr.total_revenue || 0)
+    acc.total_cost += parseFloat(curr.total_cost || 0)
+    acc.gross_profit += parseFloat(curr.gross_profit || 0)
+    return acc
+  }, { total_quantity: 0, total_revenue: 0, total_cost: 0, gross_profit: 0 })
 });
 
 const headers = [

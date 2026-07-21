@@ -1,0 +1,1 @@
+﻿const { sequelize } = require("./models"); sequelize.query("ALTER TABLE documents ADD COLUMN last_reminded_at DATETIME NULL;").then(() => { console.log("Added column"); process.exit(0); }).catch(e => { console.error(e); process.exit(1); });

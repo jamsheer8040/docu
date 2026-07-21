@@ -32,7 +32,8 @@ exports.upload = multer({
 
 exports.getConfigs = async (req, res) => {
   try {
-    const configs = await SystemConfig.findAll() || [];
+    // Only fetch global configs (tenant_id IS NULL)
+    const configs = await SystemConfig.findAll({ where: { tenant_id: null } }) || [];
     const configMap = {};
     configs.forEach(c => {
       try {

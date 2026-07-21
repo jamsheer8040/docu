@@ -56,7 +56,20 @@ const Document = sequelize.define('Document', {
   reminder_count: {
     type: DataTypes.INTEGER,
     defaultValue: 0,
-    allowNull: false
+    allowNull: false,
+    get() {
+      const count = this.getDataValue('reminder_count');
+      const last = this.getDataValue('last_reminded_at');
+      if (last && count > 0) {
+        const diff = (new Date() - new Date(last)) / (1000 * 60 * 60 * 24);
+        if (diff >= 90) return 0;
+      }
+      return count;
+    }
+  },
+  last_reminded_at: {
+    type: DataTypes.DATE,
+    allowNull: true
   },
   tenant_id: {
     type: DataTypes.INTEGER,

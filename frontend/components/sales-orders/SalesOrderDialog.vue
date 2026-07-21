@@ -191,7 +191,11 @@ const uiStore = useUIStore()
 const props = defineProps({
   modelValue: Boolean,
   customers: Array,
-  serviceTypes: Array
+  serviceTypes: Array,
+  initialCustomerId: {
+    type: [Number, String],
+    default: null
+  }
 })
 
 const emit = defineEmits(['update:modelValue', 'saved'])
@@ -222,7 +226,7 @@ const formData = reactive({
 
 watch(() => props.modelValue, (val) => {
   if (val) {
-    formData.customer_id = null
+    formData.customer_id = props.initialCustomerId || null
     formData.contact_person = ''
     formData.customer_reference = ''
     formData.branch = ''
@@ -230,7 +234,7 @@ watch(() => props.modelValue, (val) => {
     formData.items = [defaultItem()]
     if (form.value) form.value.resetValidation()
   }
-})
+}, { immediate: true })
 
 const addServiceItem = () => {
   formData.items.push(defaultItem())

@@ -14,4 +14,6 @@ router.post('/', requirePermission('customers', 'write'), checkCustomerLimit, cu
 router.put('/:id', requirePermission('customers', 'write'), customerValidator, customerController.updateCustomer);
 router.delete('/:id', requirePermission('customers', 'delete'), customerController.deleteCustomer);
 
+router.post('/bulk-import', requirePermission('customers', 'write'), checkCustomerLimit, customerController.importBulkCustomers);
+
 module.exports = router;

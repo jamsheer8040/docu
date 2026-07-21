@@ -1,0 +1,1 @@
+﻿const { sequelize, User, Role } = require("./models"); const axios = require("axios"); async function run() { const user = await User.findOne({ where: { email: 'ashraf15@gmail.com' }, include: [{ model: Role }] }); console.log("Permissions:", user.Role.permissions); process.exit(0); } run();

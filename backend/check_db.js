@@ -1,0 +1,1 @@
+﻿const { sequelize } = require("./models"); async function run() { const cols = await sequelize.getQueryInterface().describeTable("shareholders"); console.log(Object.keys(cols)); process.exit(0); } run();

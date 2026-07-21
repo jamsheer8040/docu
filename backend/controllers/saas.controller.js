@@ -1,4 +1,33 @@
-const { Tenant, Plan, TenantInvoice, User, Customer, sequelize } = require('../models');
+const { Tenant, Plan, TenantInvoice, User, Customer, PromoCode, SystemConfig, sequelize } = require('../models');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = './uploads/branding';
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'saas-logo-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+exports.upload = multer({ 
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = /jpeg|jpg|png|svg|webp/;
+    const meta = allowed.test(file.mimetype);
+    const ext = allowed.test(path.extname(file.originalname).toLowerCase());
+    if (meta && ext) return cb(null, true);
+    cb(new Error('Only images (jpg, png, svg, webp) are allowed.'));
+  }
+});
 
 /**
  * Super Admin SaaS Dashboard Stats
@@ -121,11 +150,19 @@ exports.getTenants = async (req, res) => {
       // Temporarily disable global tenant hooks to fetch raw counts
       const userCount = await User.count({ where: { tenant_id: tenant.id } });
       const customerCount = await Customer.count({ where: { tenant_id: tenant.id } });
+      
+      // Fetch the admin or first user to get the email
+      const firstUser = await User.findOne({
+        where: { tenant_id: tenant.id },
+        order: [['created_at', 'ASC']],
+        attributes: ['email']
+      });
 
       tenantData.push({
         id: tenant.id,
         name: tenant.name,
         slug: tenant.slug,
+        email: firstUser ? firstUser.email : 'N/A',
         status: tenant.status,
         trial_ends_at: tenant.trial_ends_at,
         subscription_starts_at: tenant.subscription_starts_at,
@@ -171,30 +208,51 @@ exports.updateTenantPlan = async (req, res) => {
     
     const oldStatus = tenant.status;
 
-    if (plan_id !== undefined) {
+    let planChanged = false;
+    let oldPlanId = tenant.plan_id;
+
+    if (plan_id !== undefined && plan_id !== oldPlanId) {
       const plan = await Plan.findByPk(plan_id);
       if (!plan) return res.status(404).json({ success: false, message: 'Plan not found.' });
       tenant.plan_id = plan_id;
+      planChanged = true;
     }
 
-    if (billing_cycle !== undefined) tenant.billing_cycle = billing_cycle;
+    let billingCycleChanged = false;
+    if (billing_cycle !== undefined && billing_cycle !== tenant.billing_cycle) {
+      tenant.billing_cycle = billing_cycle;
+      billingCycleChanged = true;
+    }
+
     // We ignore frontend manual dates if transitioning to active or trial, backend auto-sets them unless specifically provided in a non-status-change edit.
     if (trial_ends_at !== undefined) tenant.trial_ends_at = trial_ends_at;
     if (subscription_ends_at !== undefined) tenant.subscription_ends_at = subscription_ends_at;
     if (subscription_starts_at !== undefined) tenant.subscription_starts_at = subscription_starts_at;
 
     // Automatic Dates for Trial and Active
-    let isInitialActivation = false;
-    if (status !== undefined && status !== tenant.status) {
-      tenant.status = status;
+    let invoiceToGenerate = null;
+    let newStatus = status !== undefined ? status : oldStatus;
+
+    if (status !== undefined && status !== oldStatus) {
       const now = new Date();
 
-      if (status === 'trial') {
-        tenant.subscription_starts_at = now; // Trial start
+      if (status === 'trial' && oldStatus === 'new_registration') {
+        tenant.subscription_starts_at = now;
+        
+        // Fetch global saas_trial_days setting
+        const SystemConfig = require('../models').SystemConfig;
+        const config = await SystemConfig.findOne({ where: { key: 'saas_trial_days', tenant_id: null } });
+        const trialDays = config && config.value ? parseInt(config.value, 10) : 14;
+
         const expires = new Date();
-        expires.setDate(expires.getDate() + 14); // 14 days trial
+        expires.setDate(expires.getDate() + trialDays);
         tenant.trial_ends_at = trial_ends_at ? new Date(trial_ends_at) : expires;
-      } else if (status === 'active') {
+        
+        // Generate $0 trial invoice
+        invoiceToGenerate = { amount: 0, cycle: 'trial' };
+        newStatus = 'trial';
+      } 
+      else if (status === 'active' && (oldStatus === 'trial' || oldStatus === 'trial_expired' || oldStatus === 'new_registration')) {
         tenant.subscription_starts_at = now;
         const expires = new Date(now);
         if (tenant.billing_cycle === 'yearly') {
@@ -204,26 +262,42 @@ exports.updateTenantPlan = async (req, res) => {
         }
         tenant.subscription_ends_at = expires;
         tenant.next_billing_date = expires;
-        isInitialActivation = true;
+        
+        // Generate full invoice
+        const activePlan = await Plan.findByPk(tenant.plan_id);
+        invoiceToGenerate = { 
+          amount: tenant.billing_cycle === 'yearly' ? activePlan.price_yearly : activePlan.price_monthly,
+          cycle: tenant.billing_cycle
+        };
+        newStatus = 'active';
       }
+
+      tenant.status = newStatus;
+    } else if ((planChanged || billingCycleChanged) && (oldStatus === 'active' || oldStatus === 'unpaid')) {
+      // Plan or billing cycle changed mid-cycle without status change
+      // Cancel any existing unpaid invoices for this subscription cycle
+      await TenantInvoice.update({ status: 'void' }, { where: { tenant_id: tenant.id, status: 'unpaid' } });
+      
+      const activePlan = await Plan.findByPk(tenant.plan_id);
+      const amount = tenant.billing_cycle === 'yearly' ? activePlan.price_yearly : activePlan.price_monthly;
+      
+      invoiceToGenerate = { amount, cycle: tenant.billing_cycle };
+      // Do not change the workspace status to unpaid, let it remain active
+      tenant.status = 'active';
     }
 
     await tenant.save();
 
-    // Auto-generate invoice if initial activation
-    if (isInitialActivation && tenant.plan_id) {
-      const plan = await Plan.findByPk(tenant.plan_id);
-      if (plan) {
-        const amount = tenant.billing_cycle === 'yearly' ? plan.price_yearly : plan.price_monthly;
-        const invoiceCount = await TenantInvoice.count();
-        await TenantInvoice.create({
-          tenant_id: tenant.id,
-          invoice_number: `INV-SAAS-${10000 + invoiceCount + 1}`,
-          amount,
-          status: 'unpaid', // Generated as unpaid
-          due_date: new Date()
-        });
-      }
+    // Auto-generate invoice
+    if (invoiceToGenerate && tenant.plan_id) {
+      const invoiceCount = await TenantInvoice.count();
+      await TenantInvoice.create({
+        tenant_id: tenant.id,
+        invoice_number: `INV-SAAS-${10000 + invoiceCount + 1}`,
+        amount: invoiceToGenerate.amount,
+        status: invoiceToGenerate.amount === 0 ? 'paid' : 'unpaid', // $0 invoice is auto paid
+        due_date: new Date()
+      });
     }
     
     // Log History if status changed
@@ -231,15 +305,13 @@ exports.updateTenantPlan = async (req, res) => {
       const { TenantHistory } = require('../models');
       let actionName = 'Status Updated';
       if (oldStatus === 'new_registration' && status === 'trial') actionName = 'Trial Approved';
-      if (oldStatus === 'new_registration' && status === 'active') actionName = 'Activated';
-      if (status === 'active') actionName = 'Activated';
-      if (status === 'suspended') actionName = 'Suspended';
+      if ((oldStatus === 'trial' || oldStatus === 'trial_expired') && status === 'active') actionName = 'Activated & Invoiced';
       
       await TenantHistory.create({
         tenant_id: tenant.id,
         action: actionName,
         old_status: oldStatus,
-        new_status: status,
+        new_status: newStatus,
         plan_id: tenant.plan_id
       });
     }
@@ -247,6 +319,77 @@ exports.updateTenantPlan = async (req, res) => {
     res.json({ success: true, message: 'Tenant updated successfully.', data: tenant });
   } catch (err) {
     console.error('[SaaS Admin Update Tenant Error]', err);
+    res.status(500).json({ success: false, message: 'Internal Server Error.' });
+  }
+};
+
+/**
+ * Extend Tenant Subscription (Manual or auto)
+ */
+exports.extendSubscription = async (req, res) => {
+  const { id } = req.params;
+  const { extension_type, custom_date } = req.body;
+
+  try {
+    const tenant = await Tenant.findByPk(id);
+    if (!tenant) return res.status(404).json({ success: false, message: 'Tenant not found.' });
+
+    let newDate;
+    // Determine the base date (if expired, start from now, otherwise from existing end date)
+    const now = new Date();
+    
+    if (tenant.status === 'trial' || tenant.status === 'trial_expired') {
+      const baseDate = (tenant.trial_ends_at && tenant.trial_ends_at > now) ? new Date(tenant.trial_ends_at) : now;
+      if (extension_type === 'month') {
+        baseDate.setMonth(baseDate.getMonth() + 1);
+      } else if (extension_type === 'year') {
+        baseDate.setFullYear(baseDate.getFullYear() + 1);
+      } else if (extension_type === 'custom' && custom_date) {
+        baseDate.setTime(new Date(custom_date).getTime());
+      } else {
+        return res.status(400).json({ success: false, message: 'Invalid extension parameters.' });
+      }
+      tenant.trial_ends_at = baseDate;
+      if (tenant.status === 'trial_expired' && baseDate > now) {
+        tenant.status = 'trial';
+      }
+      newDate = baseDate;
+    } else {
+      const baseDate = (tenant.subscription_ends_at && tenant.subscription_ends_at > now) ? new Date(tenant.subscription_ends_at) : now;
+      if (extension_type === 'month') {
+        baseDate.setMonth(baseDate.getMonth() + 1);
+      } else if (extension_type === 'year') {
+        baseDate.setFullYear(baseDate.getFullYear() + 1);
+      } else if (extension_type === 'custom' && custom_date) {
+        baseDate.setTime(new Date(custom_date).getTime());
+      } else {
+        return res.status(400).json({ success: false, message: 'Invalid extension parameters.' });
+      }
+      tenant.subscription_ends_at = baseDate;
+      tenant.next_billing_date = baseDate;
+      
+      // If they were expired, reactivate them
+      if (['expired', 'suspended'].includes(tenant.status) && baseDate > now) {
+        tenant.status = 'active'; // or 'unpaid' if we need to generate invoice, but this is a manual extension so we just make it active.
+      }
+      newDate = baseDate;
+    }
+
+    await tenant.save();
+
+    // Log History
+    const { TenantHistory } = require('../models');
+    await TenantHistory.create({
+      tenant_id: tenant.id,
+      action: 'Extended Subscription',
+      old_status: tenant.status,
+      new_status: tenant.status,
+      plan_id: tenant.plan_id
+    });
+
+    res.json({ success: true, message: 'Subscription extended successfully.', data: { new_date: newDate } });
+  } catch (err) {
+    console.error('[SaaS Extend Sub Error]', err);
     res.status(500).json({ success: false, message: 'Internal Server Error.' });
   }
 };
@@ -398,6 +541,127 @@ exports.payInvoice = async (req, res) => {
 
     res.json({ success: true, message: 'Invoice marked as paid.', data: invoice });
   } catch (err) {
+    res.status(500).json({ success: false, message: 'Internal Server Error.' });
+  }
+};
+
+/**
+ * Get Global System Settings for SaaS
+ */
+exports.getSettings = async (req, res) => {
+  try {
+    const configs = await SystemConfig.findAll({ where: { tenant_id: null } });
+    const settings = {};
+    configs.forEach(c => {
+      settings[c.key] = c.value;
+    });
+    res.json({ success: true, data: settings });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Internal Server Error.' });
+  }
+};
+
+/**
+ * Update Global System Settings for SaaS
+ */
+exports.updateSettings = async (req, res) => {
+  const settings = req.body;
+  
+  try {
+    for (const [key, value] of Object.entries(settings)) {
+      const existing = await SystemConfig.findOne({ where: { key, tenant_id: null } });
+      if (existing) {
+        await existing.update({ value: String(value) });
+      } else {
+        await SystemConfig.create({ key, value: String(value), tenant_id: null });
+      }
+    }
+    
+    // We can also fetch the updated configs to return
+    const configs = await SystemConfig.findAll({ where: { tenant_id: null } });
+    const updatedSettings = {};
+    configs.forEach(c => {
+      updatedSettings[c.key] = c.value;
+    });
+    
+    res.json({ success: true, message: 'Settings updated successfully.', data: updatedSettings });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Internal Server Error.' });
+  }
+};
+
+/**
+ * Upload SaaS Global Logo
+ */
+exports.uploadLogo = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+
+    const logoUrl = `/uploads/branding/${req.file.filename}`;
+    const existing = await SystemConfig.findOne({ where: { key: 'app_logo', tenant_id: null } });
+    if (existing) {
+      await existing.update({ value: logoUrl });
+    } else {
+      await SystemConfig.create({ key: 'app_logo', value: logoUrl, tenant_id: null });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'SaaS logo uploaded successfully.',
+      url: logoUrl
+    });
+  } catch (err) {
+    console.error('[SaaS Controller] Upload Error:', err);
+    res.status(500).json({ success: false, message: 'Logo upload failed.' });
+  }
+};
+
+/**
+ * List Promo Codes
+ */
+exports.getPromoCodes = async (req, res) => {
+  try {
+    const promoCodes = await PromoCode.findAll({ order: [['created_at', 'DESC']] });
+    res.json({ success: true, data: promoCodes });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Internal Server Error.' });
+  }
+};
+
+/**
+ * Create Promo Code
+ */
+exports.createPromoCode = async (req, res) => {
+  try {
+    const promoCode = await PromoCode.create(req.body);
+    res.status(201).json({ success: true, message: 'Promo code created.', data: promoCode });
+  } catch (err) {
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({ success: false, message: 'Promo code already exists.' });
+    }
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Internal Server Error.' });
+  }
+};
+
+/**
+ * Update Promo Code
+ */
+exports.updatePromoCode = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const promoCode = await PromoCode.findByPk(id);
+    if (!promoCode) return res.status(404).json({ success: false, message: 'Promo code not found.' });
+
+    await promoCode.update(req.body);
+    res.json({ success: true, message: 'Promo code updated.', data: promoCode });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false, message: 'Internal Server Error.' });
   }
 };

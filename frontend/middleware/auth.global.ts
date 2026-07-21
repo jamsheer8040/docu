@@ -1,12 +1,17 @@
 import { useAuthStore } from '~/stores/auth';
 import { useConfigStore } from '~/stores/config';
 
-export default defineNuxtRouteMiddleware((to, from) => {
+export default defineNuxtRouteMiddleware(async (to, from) => {
   if (import.meta.server) return;
 
   const nuxtApp = useNuxtApp();
   const authStore = useAuthStore(nuxtApp.$pinia);
   const configStore = useConfigStore(nuxtApp.$pinia);
+
+  // Always refresh user/tenant status from server on navigation (ensures approved tenants see updated status)
+  if (authStore.isAuthenticated && from?.path !== to.path) {
+    await authStore.fetchMe();
+  }
 
   // License Expiry Check
   // Allow login page, expired page, and developer to bypass expiry block

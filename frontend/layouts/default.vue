@@ -15,8 +15,7 @@
           <div class="d-flex flex-column align-center text-center cursor-pointer" @click="navigateTo('/')">
             <div v-if="configStore.appLogo" class="mb-2 d-flex align-center justify-center p-2 rounded-xl" style="width: 100%; height: 80px; background: rgba(255,255,255,0.4);">
                <v-img 
-                 :src="configStore.appLogo" 
-                 crossorigin="anonymous"
+                 :src="configStore.appLogo"
                  width="140"
                  height="70"
                  contain
@@ -45,6 +44,14 @@
             prepend-icon="mdi-account-group-outline"
             title="Customers"
             to="/customers"
+            color="primary"
+            class="mb-2"
+          ></v-list-item>
+          <v-list-item
+            v-if="authStore.can('customers')"
+            prepend-icon="mdi-account-star-outline"
+            title="Leads"
+            to="/leads"
             color="primary"
             class="mb-2"
           ></v-list-item>

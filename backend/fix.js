@@ -1,0 +1,1 @@
+﻿const { sequelize } = require("./models"); sequelize.query("UPDATE tenants SET status='active' WHERE status NOT IN ('new_registration', 'trial', 'active', 'suspended', 'expired', 'trial_expired', 'cancelled') OR status = ''").then(() => { console.log("Fixed"); process.exit(0); });

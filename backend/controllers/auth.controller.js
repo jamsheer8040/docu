@@ -284,16 +284,12 @@ exports.registerTenant = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Selected subscription plan not found.' });
     }
 
-    const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 14);
-
     // 4. Create Tenant
     const tenant = await Tenant.create({
       name: companyName,
       slug,
       plan_id: planId,
-      status: 'trial',
-      trial_ends_at: trialEndsAt,
+      status: 'new_registration',
       billing_cycle: billingCycle
     }, { transaction });
 
@@ -302,7 +298,7 @@ exports.registerTenant = async (req, res) => {
       tenant_id: tenant.id,
       action: 'Registration',
       old_status: null,
-      new_status: 'trial',
+      new_status: 'new_registration',
       plan_id: planId
     }, { transaction });
 

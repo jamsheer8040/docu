@@ -456,7 +456,10 @@ exports.incrementReminderCount = async (req, res) => {
       }
     }
 
+    // Because we have a getter on reminder_count that returns 0 if over 90 days,
+    // document.reminder_count evaluates to 0 automatically if it's expired.
     document.reminder_count = (document.reminder_count || 0) + 1;
+    document.last_reminded_at = new Date();
     await document.save();
 
     res.json({ success: true, reminder_count: document.reminder_count });

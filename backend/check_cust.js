@@ -1,0 +1,1 @@
+﻿const { sequelize } = require("./models"); sequelize.query("SELECT c.id, c.name FROM customers c JOIN tenants t ON c.tenant_id = t.id WHERE t.name = 'better15'").then(([res]) => { console.log("Customers for better15:", res.length); process.exit(0); });

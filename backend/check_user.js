@@ -1,0 +1,1 @@
+﻿const { sequelize } = require("./models"); sequelize.query("SELECT u.email, r.name as role_name, r.type as role_type FROM users u JOIN roles r ON u.role_id = r.id WHERE u.email = 'ashraf15@gmail.com'").then(([res]) => { console.log("User:", res); process.exit(0); });

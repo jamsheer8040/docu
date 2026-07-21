@@ -58,8 +58,9 @@
         :items="filteredSalesOrders"
         :search="search"
         :loading="loading"
-        class="bg-transparent"
+        class="bg-transparent cursor-pointer"
         hover
+        @click:row="(_, { item }) => viewOrder(item)"
       >
         <template v-slot:item.order_number="{ item }">
           <span class="font-weight-black text-primary">{{ item.order_number }}</span>
@@ -82,19 +83,28 @@
 
         <template v-slot:item.actions="{ item }">
           <v-btn
+            icon="mdi-download"
+            variant="text"
+            color="success"
+            size="small"
+            class="mr-2"
+            title="Download Proforma Invoice"
+            @click.stop="downloadProforma(item)"
+          ></v-btn>
+          <v-btn
             icon="mdi-eye"
             variant="text"
             color="primary"
             size="small"
             class="mr-2"
-            @click="viewOrder(item)"
+            @click.stop="viewOrder(item)"
           ></v-btn>
           <v-btn
             icon="mdi-delete"
             variant="text"
             color="error"
             size="small"
-            @click="deleteOrder(item)"
+            @click.stop="deleteOrder(item)"
           ></v-btn>
         </template>
       </v-data-table>
@@ -162,12 +172,19 @@ const fetchData = async () => {
   try {
     const [ordersRes, custRes, servRes] = await Promise.all([
       $api.get('/sales-orders'),
-      $api.get('/customers'),
+      $api.get('/customers?limit=1000&is_active=true'),
       $api.get('/services/types')
     ])
     salesOrders.value = ordersRes.data.data
     customers.value = custRes.data.data
     serviceTypes.value = servRes.data.data
+
+    if (selectedOrder.value) {
+      const updatedOrder = salesOrders.value.find(o => o.id === selectedOrder.value.id)
+      if (updatedOrder) {
+        selectedOrder.value = updatedOrder
+      }
+    }
   } catch (err) {
     console.error(err)
   } finally {
@@ -196,6 +213,24 @@ const deleteOrder = async (item) => {
   } catch (err) {
     console.error(err)
     uiStore.showError('Failed to delete')
+  }
+}
+
+const downloadProforma = async (item) => {
+  if (!item?.id) return
+  try {
+    const res = await $api.get(`/sales-orders/${item.id}/proforma-pdf`, { responseType: 'blob' })
+    const url = window.URL.createObjectURL(new Blob([res.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `Proforma_Invoice_${item.order_number}.pdf`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Failed to download proforma pdf', error)
+    uiStore.showError('Failed to download Proforma Invoice')
   }
 }
 

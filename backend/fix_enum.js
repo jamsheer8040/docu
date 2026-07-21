@@ -1,0 +1,1 @@
+const { sequelize } = require('./models'); sequelize.query("ALTER TABLE tenants MODIFY COLUMN status ENUM('new_registration', 'trial', 'active', 'suspended', 'expired', 'trial_expired', 'cancelled') NOT NULL DEFAULT 'new_registration';").then(() => { console.log('success'); process.exit(0); });

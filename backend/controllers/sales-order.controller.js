@@ -200,3 +200,33 @@ exports.deleteSalesOrder = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+const { generateProformaInvoicePDF } = require('../utils/pdfGenerator');
+
+/**
+ * Download Proforma Invoice PDF
+ */
+exports.downloadProformaPDF = async (req, res) => {
+  try {
+    const order = await SalesOrder.findByPk(req.params.id, {
+      include: [
+        { model: Customer },
+        { model: SalesOrderItem }
+      ]
+    });
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Sales Order not found' });
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=Proforma_Invoice_${order.order_number}.pdf`);
+
+    generateProformaInvoicePDF(order, res);
+
+  } catch (error) {
+    console.error('[SalesOrderController] Error generating Proforma PDF:', error);
+    res.status(500).json({ success: false, message: 'Server error generating PDF' });
+  }
+};
+
