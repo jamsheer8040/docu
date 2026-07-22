@@ -1,0 +1,1 @@
+﻿const { sequelize } = require("./models"); async function run() { await sequelize.query("UPDATE leads SET company_name = name WHERE company_name IS NULL OR company_name = \"\""); console.log("Done"); process.exit(0); } run();

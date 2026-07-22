@@ -81,7 +81,7 @@
             <v-col cols="12" md="6">
               <v-text-field
                 v-model="formData.name"
-                label="Contact Person"
+                label="Contact Person (Optional)"
                 variant="outlined"
                 density="comfortable"
                 rounded="lg"
@@ -297,6 +297,8 @@ const selectCustomer = (customer) => {
   customerSearch.value = customer.name;
   formData.customer_id = customer.id;
   formData.company_name = customer.name;
+  // If the customer has a dedicated contact person field, use it, otherwise use their primary name
+  formData.name = customer.contact_person || customer.name || '';
   formData.email = customer.email || '';
   formData.phone = customer.phone_whatsapp || '';
   isFocused.value = false;

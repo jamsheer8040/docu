@@ -66,15 +66,14 @@
         class="bg-transparent cursor-pointer"
         hover
       >
-        <!-- Name column -->
         <template v-slot:item.name="{ item }">
           <div class="d-flex align-center py-2">
             <v-avatar color="primary" size="36" class="mr-3 text-white font-weight-bold">
-              {{ (item.name || '?').charAt(0).toUpperCase() }}
+              {{ (item.company_name || item.name || '?').charAt(0).toUpperCase() }}
             </v-avatar>
             <div>
-              <div class="font-weight-bold text-body-1">{{ item.name }}</div>
-              <div class="text-caption text-secondary" v-if="item.company_name">{{ item.company_name }}</div>
+              <div class="font-weight-bold text-body-1">{{ item.company_name }}</div>
+              <div class="text-caption text-secondary" v-if="item.name">{{ item.name }}</div>
             </div>
           </div>
         </template>
@@ -251,7 +250,7 @@
             >
               <v-card-text class="pa-3">
                 <div class="d-flex justify-space-between align-start mb-2">
-                  <div class="font-weight-bold text-body-2 text-truncate flex-grow-1 mr-1">{{ lead.name }}</div>
+                  <div class="font-weight-bold text-body-2 text-truncate flex-grow-1 mr-1">{{ lead.company_name }}</div>
                   <v-btn
                     v-if="authStore.can('customers', 'delete')"
                     icon="mdi-delete"
@@ -262,8 +261,8 @@
                   ></v-btn>
                 </div>
 
-                <div class="text-caption text-secondary mb-2" v-if="lead.company_name">
-                  <v-icon size="x-small" class="mr-1">mdi-domain</v-icon>{{ lead.company_name }}
+                <div class="text-caption text-secondary mb-2" v-if="lead.name">
+                  <v-icon size="x-small" class="mr-1">mdi-account</v-icon>{{ lead.name }}
                 </div>
 
                 <div v-if="lead.Service" class="d-flex align-center text-caption text-primary font-weight-medium mb-1">

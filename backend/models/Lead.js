@@ -9,11 +9,11 @@ const Lead = sequelize.define('Lead', {
   },
   name: {
     type: DataTypes.STRING(150),
-    allowNull: false
+    allowNull: true
   },
   company_name: {
     type: DataTypes.STRING(150),
-    allowNull: true
+    allowNull: false
   },
   email: {
     type: DataTypes.STRING(100),
@@ -51,11 +51,6 @@ const Lead = sequelize.define('Lead', {
   created_by: {
     type: DataTypes.INTEGER,
     allowNull: true
-  },
-  whatsapp_clicks: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    defaultValue: 0
   },
   converted_by: {
     type: DataTypes.INTEGER,
