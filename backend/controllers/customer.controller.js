@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Customer, Document, Invoice, ServiceOrder, ServiceType, DocumentType } = require('../models');
+const { Customer, Document, Invoice, ServiceOrder, ServiceType, DocumentType, SalesOrder } = require('../models');
 const { validationResult } = require('express-validator');
 
 /**
@@ -152,6 +152,27 @@ exports.deleteCustomer = async (req, res) => {
       return res.status(400).json({ 
         success: false, 
         message: 'Cannot deactivate customer with active service orders. Complete or cancel them first.' 
+      });
+    }
+
+    // CHECK FOR ACTIVE SALES ORDERS
+    const activeSalesOrders = await SalesOrder.count({
+      where: {
+        customer_id: customer.id
+      },
+      include: [{
+        model: require('../models').SalesOrderItem,
+        where: {
+          status: { [Op.notIn]: ['CompletedInvoiceCreated', 'Cancelled'] }
+        },
+        required: true
+      }]
+    });
+
+    if (activeSalesOrders > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Cannot deactivate customer with pending sales orders. Complete or cancel them first.' 
       });
     }
 

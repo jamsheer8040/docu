@@ -106,9 +106,11 @@ exports.convertLead = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Lead must be in Won status to convert.' });
     }
 
-    // Check if email already exists as a customer
+    // Check if email already exists as a customer within the same tenant
     if (lead.email) {
-      const existingCustomer = await Customer.findOne({ where: { email: lead.email } });
+      const existingCustomer = await Customer.findOne({ 
+        where: { email: lead.email, tenant_id: req.user.tenant_id } 
+      });
       if (existingCustomer) {
         return res.status(400).json({ success: false, message: 'A customer with this email already exists' });
       }
