@@ -25,7 +25,7 @@ services:
     ports:
       - "5000:5000"
     env_file:
-      - ./backend/.env.production.example # Use real .env in prod
+      - ./backend/.env
     environment:
       DB_HOST: db
 
