@@ -163,7 +163,7 @@ module.exports = {
     await queryInterface.bulkInsert('invoices', [
       { id: 1, invoice_number: 'INV-2024-001', customer_id: 1, service_order_id: 1, subtotal: 3500, discount: 0, tax: 175, total: 3675, cost_total: 2800, status: 'Paid', due_date: now, paid_at: now, created_at: now, updated_at: now },
       { id: 2, invoice_number: 'INV-2024-002', customer_id: 2, service_order_id: 2, subtotal: 2800, discount: 100, tax: 135, total: 2835, cost_total: 2100, status: 'Paid', due_date: now, paid_at: now, created_at: now, updated_at: now },
-      { id: 3, invoice_number: 'INV-2024-003', customer_id: 3, subtotal: 5000, discount: 0, tax: 250, total: 5250, cost_total: 4200, status: 'Sent', due_date: now, created_at: now, updated_at: now }
+      { id: 3, invoice_number: 'INV-2024-003', customer_id: 3, subtotal: 5000, discount: 0, tax: 250, total: 5250, cost_total: 4200, status: 'Issued', due_date: now, created_at: now, updated_at: now }
     ]);
 
     // 10. Invoice Items
