@@ -87,11 +87,19 @@ module.exports = {
 
     // 4. Service Types
     await queryInterface.bulkInsert('service_types', [
-      { id: 1, name: 'New Visa', category: 'Visa', sell_price: 3500, cost_price: 2800, description: 'Employment visa processing', is_active: true, created_at: now, updated_at: now },
-      { id: 2, name: 'Visa Renewal', category: 'Visa', sell_price: 2800, cost_price: 2100, description: 'Existing visa renewal', is_active: true, created_at: now, updated_at: now },
-      { id: 3, name: 'Trade License Renewal', category: 'PRO', sell_price: 5000, cost_price: 4200, description: 'Economic department renewal', is_active: true, created_at: now, updated_at: now },
-      { id: 4, name: 'Emirates ID Typing', category: 'Govt', sell_price: 250, cost_price: 180, description: 'EID application typing', is_active: true, created_at: now, updated_at: now },
-      { id: 5, name: 'Medical Fitness', category: 'Govt', sell_price: 450, cost_price: 320, description: 'Medical test coordination', is_active: true, created_at: now, updated_at: now }
+      { id: 1, name: 'New Visa', category: 'Visa', cost_price: 2800, description: 'Employment visa processing', is_active: true, created_at: now, updated_at: now },
+      { id: 2, name: 'Visa Renewal', category: 'Visa', cost_price: 2100, description: 'Existing visa renewal', is_active: true, created_at: now, updated_at: now },
+      { id: 3, name: 'Trade License Renewal', category: 'PRO', cost_price: 4200, description: 'Economic department renewal', is_active: true, created_at: now, updated_at: now },
+      { id: 4, name: 'Emirates ID Typing', category: 'Govt', cost_price: 180, description: 'EID application typing', is_active: true, created_at: now, updated_at: now },
+      { id: 5, name: 'Medical Fitness', category: 'Govt', cost_price: 320, description: 'Medical test coordination', is_active: true, created_at: now, updated_at: now }
+    ]);
+
+    await queryInterface.bulkInsert('service_type_pricings', [
+      { service_type_id: 1, pricing_type: 'Single', service_charge: 700, selling_price: 3500, created_at: now, updated_at: now },
+      { service_type_id: 2, pricing_type: 'Single', service_charge: 700, selling_price: 2800, created_at: now, updated_at: now },
+      { service_type_id: 3, pricing_type: 'Single', service_charge: 800, selling_price: 5000, created_at: now, updated_at: now },
+      { service_type_id: 4, pricing_type: 'Single', service_charge: 70, selling_price: 250, created_at: now, updated_at: now },
+      { service_type_id: 5, pricing_type: 'Single', service_charge: 130, selling_price: 450, created_at: now, updated_at: now }
     ]);
 
     // 5. Customers
