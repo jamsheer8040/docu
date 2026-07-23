@@ -155,7 +155,7 @@ module.exports = {
     await queryInterface.bulkInsert('service_orders', [
       { id: 1, customer_id: 1, service_type_id: 1, status: 'Completed', notes: 'Urgent processing', started_at: lastMonth, completed_at: lastMonth, created_at: lastMonth, updated_at: lastMonth },
       { id: 2, customer_id: 2, service_type_id: 2, status: 'Completed', started_at: lastMonth, completed_at: now, created_at: lastMonth, updated_at: now },
-      { id: 3, customer_id: 3, service_type_id: 3, status: 'InProgress', started_at: now, created_at: now, updated_at: now },
+      { id: 3, customer_id: 3, service_type_id: 3, status: 'In Progress', started_at: now, created_at: now, updated_at: now },
       { id: 4, customer_id: 1, service_type_id: 4, status: 'Pending', created_at: now, updated_at: now }
     ]);
 
