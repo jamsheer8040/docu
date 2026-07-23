@@ -307,6 +307,9 @@
 </template>
 
 <script setup>
+import { useUIStore } from '~/stores/ui'
+
+const uiStore = useUIStore()
 import { reactive, ref, computed, onMounted, watch } from 'vue';
 import { useInvoiceStore } from '~/stores/invoices';
 import { useConfigStore } from '~/stores/config';
@@ -431,7 +434,7 @@ const fetchData = async () => {
   $api.get('/services/orders', { params: { limit: 1000 } }).then(r => {
     if (r.data?.success) {
       let filtered = r.data.data.filter(
-        o => o.status === 'Pending' || o.status === 'InProgress' || o.status === 'CompletedInvoicePending'
+        o => o.status === 'Pending' || o.status === 'In Progress' || o.status === 'CompletedInvoicePending'
       );
       if (props.prefilledCustomerId) {
         filtered = filtered.filter(o => o.customer_id === parseInt(props.prefilledCustomerId));
@@ -601,7 +604,7 @@ const save = async (status) => {
 
         emit('save');
     } catch (err) {
-        alert(err.message || 'Operation failed');
+        uiStore.showError(err.message || 'Operation failed');
     }
 };
 </script>

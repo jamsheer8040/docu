@@ -6,6 +6,38 @@
         <p class="text-subtitle-2 text-grey-darken-1 mb-0">Manage your clients and their contact information.</p>
       </v-col>
       <v-col cols="12" md="4" class="d-flex align-center justify-md-end flex-wrap gap-3">
+        <input 
+          type="file" 
+          ref="fileInput" 
+          accept=".csv" 
+          style="display: none" 
+          @change="handleFileUpload" 
+        />
+        <v-btn
+          v-if="auth.can('customers', 'write')"
+          color="info"
+          variant="tonal"
+          prepend-icon="mdi-file-download"
+          rounded="lg"
+          height="44"
+          class="font-weight-bold"
+          @click="downloadTemplate"
+        >
+          Template
+        </v-btn>
+        <v-btn
+          v-if="auth.can('customers', 'write')"
+          color="secondary"
+          variant="tonal"
+          prepend-icon="mdi-file-upload"
+          rounded="lg"
+          height="44"
+          class="font-weight-bold"
+          @click="triggerFileInput"
+          :loading="importing"
+        >
+          Import CSV
+        </v-btn>
         <v-btn
           v-if="auth.can('customers', 'write')"
           color="primary"
@@ -20,6 +52,19 @@
         </v-btn>
       </v-col>
     </v-row>
+
+    <!-- Plan Usage Limit Info -->
+    <v-alert
+      v-if="auth.user?.Tenant?.Plan?.max_customers && totalItems >= auth.user.Tenant.Plan.max_customers"
+      type="error"
+      variant="tonal"
+      class="mb-4 rounded-lg font-weight-medium"
+      icon="mdi-alert-octagon"
+      border="start"
+    >
+      You have reached your workspace limit of <strong>{{ auth.user.Tenant.Plan.max_customers }}</strong> customers on the {{ auth.user.Tenant.Plan.name }} plan. You cannot add any more customers until you upgrade.
+    </v-alert>
+
 
     <v-card class="rounded-lg">
       <v-card-title class="pa-4 d-flex align-center">
@@ -176,6 +221,7 @@
 <script setup>
 import { useWhatsApp } from '@/composables/useWhatsApp';
 import CustomerForm from '@/components/customers/CustomerForm.vue';
+import Papa from 'papaparse';
 
 import { useAuthStore } from '@/stores/auth';
 
@@ -198,6 +244,68 @@ const deleteDialog = ref(false);
 const itemToDelete = ref(null);
 
 const snackbar = reactive({ show: false, text: '', color: '' });
+
+const fileInput = ref(null);
+const importing = ref(false);
+
+const triggerFileInput = () => {
+  if (fileInput.value) {
+    fileInput.value.value = '';
+    fileInput.value.click();
+  }
+};
+
+const handleFileUpload = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  importing.value = true;
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: async (results) => {
+      try {
+        const res = await $api.post('/customers/bulk-import', { customers: results.data });
+        if (res.data.success) {
+          snackbar.text = res.data.message || 'Import successful';
+          snackbar.color = 'success';
+          snackbar.show = true;
+          loadCustomers({ page: 1, itemsPerPage: itemsPerPage.value });
+        }
+      } catch (err) {
+        console.error(err);
+        snackbar.text = err.response?.data?.message || 'Failed to import CSV';
+        snackbar.color = 'error';
+        snackbar.show = true;
+      } finally {
+        importing.value = false;
+      }
+    },
+    error: (error) => {
+      console.error(error);
+      snackbar.text = 'Failed to parse CSV file';
+      snackbar.color = 'error';
+      snackbar.show = true;
+      importing.value = false;
+    }
+  });
+};
+
+const downloadTemplate = () => {
+  const headers = ['name', 'phone_whatsapp', 'email', 'address', 'city', 'country', 'trade_license_no', 'notes', 'pricing_category'];
+  const dummyRow = ['John Doe', '+971501234567', 'john@example.com', 'Business Bay', 'Dubai', 'UAE', 'TL123456', 'VIP Customer', 'Prime'];
+  
+  const csvContent = [headers.join(','), dummyRow.join(',')].join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', 'Customer_Import_Template.csv');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
 const headers = [
   { title: 'Name', key: 'name', align: 'start' },

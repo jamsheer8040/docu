@@ -172,6 +172,14 @@ watch(() => props.customer, (newVal) => {
   }
 }, { immediate: true });
 
+// Also reset when dialog opens to ensure a clean form for "New Customer"
+watch(() => props.modelValue, (isOpen) => {
+  if (isOpen && !props.customer) {
+    Object.assign(state, initialState);
+    v$.value.$reset();
+  }
+});
+
 const close = () => {
   show.value = false;
 };

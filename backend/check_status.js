@@ -1,0 +1,1 @@
+const { sequelize } = require('./models'); sequelize.query(SELECT t.id, t.name, t.status, u.email FROM tenants t JOIN users u ON t.id = u.tenant_id WHERE u.email = 'ashraf15@gmail.com').then(([res]) => { console.log(res); process.exit(0); });

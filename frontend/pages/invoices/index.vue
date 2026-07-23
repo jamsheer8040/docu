@@ -252,6 +252,9 @@
 </template>
 
 <script setup>
+import { useUIStore } from '~/stores/ui'
+
+const uiStore = useUIStore()
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useInvoiceStore } from '~/stores/invoices';
 import { useWalletStore } from '~/stores/wallet';
@@ -359,7 +362,7 @@ const updateStatus = async (invoice, newStatus) => {
         await invoiceStore.updateStatus(invoice.id, newStatus);
         loadInvoices({ page: currentPage.value, itemsPerPage: itemsPerPage.value, search: search.value });
     } catch (err) {
-        alert('Failed to update status');
+        uiStore.showError('Failed to update status');
     }
 };
 
@@ -371,7 +374,7 @@ const confirmPayment = async () => {
         paymentAccount.value = null;
         paymentAmount.value = 0;
     } catch (err) {
-        alert('Failed to update status');
+        uiStore.showError('Failed to update status');
     }
 };
 
@@ -379,13 +382,13 @@ const downloadPDF = async (invoice) => {
     try {
         await invoiceStore.downloadPDF(invoice.id, invoice.invoice_number);
     } catch (err) {
-        alert('Could not download PDF');
+        uiStore.showError('Could not download PDF');
     }
 };
 
 const shareWhatsApp = (invoice) => {
     const num = invoice.Customer?.phone_whatsapp;
-    if (!num) return alert('No phone number found');
+    if (!num) return uiStore.showError('No phone number found');
     
     const msg = `Hi ${invoice.Customer?.name}, your invoice ${invoice.invoice_number} for AED ${invoice.total} is ready. Status: ${invoice.status}.`;
     openWhatsApp(num, msg);
@@ -397,7 +400,7 @@ const confirmCancel = async (invoice) => {
             await invoiceStore.updateStatus(invoice.id, 'Cancelled');
             loadInvoices({ page: currentPage.value, itemsPerPage: itemsPerPage.value });
         } catch (err) {
-            alert('Failed to cancel invoice');
+            uiStore.showError('Failed to cancel invoice');
         }
     }
 };

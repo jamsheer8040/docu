@@ -8,9 +8,12 @@ const sequelize = require('../config/database');
 /**
  * Helper to generate date range where clause
  */
-const getDateRangeWhere = (query) => {
-    const { from, to } = query;
+const getReportWhere = (req) => {
+    const { from, to } = req.query;
     const where = {};
+    if (req.user && req.user.tenant_id) {
+        where.tenant_id = req.user.tenant_id;
+    }
     if (from || to) {
         where.created_at = {};
         if (from) where.created_at[Op.gte] = new Date(from);
@@ -28,7 +31,7 @@ const getDateRangeWhere = (query) => {
  */
 exports.getFinancialSummary = async (req, res) => {
   try {
-    const dateWhere = getDateRangeWhere(req.query);
+    const dateWhere = getReportWhere(req);
     const invoiceWhere = { 
         [Op.or]: [{ status: 'Paid' }, { status: 'Partially Paid' }], 
         ...dateWhere 
@@ -65,7 +68,7 @@ exports.getFinancialSummary = async (req, res) => {
  */
 exports.getMonthlyTrends = async (req, res) => {
   try {
-    const dateWhere = getDateRangeWhere(req.query);
+    const dateWhere = getReportWhere(req);
     
     // If no dates provided, default to last 6 months
     if (!req.query.from && !req.query.to) {
@@ -111,7 +114,7 @@ exports.getMonthlyTrends = async (req, res) => {
  */
 exports.getRevenueByService = async (req, res) => {
     try {
-        const dateWhere = getDateRangeWhere(req.query);
+        const dateWhere = getReportWhere(req);
         const results = await InvoiceItem.findAll({
             attributes: [
                 'description',
@@ -142,7 +145,7 @@ exports.getRevenueByService = async (req, res) => {
  */
 exports.getExpenseByCategory = async (req, res) => {
     try {
-        const dateWhere = getDateRangeWhere(req.query);
+        const dateWhere = getReportWhere(req);
         const results = await Expense.findAll({
             attributes: [
                 'category',
@@ -164,7 +167,7 @@ exports.getExpenseByCategory = async (req, res) => {
  */
 exports.getTopCustomers = async (req, res) => {
     try {
-        const dateWhere = getDateRangeWhere(req.query);
+        const dateWhere = getReportWhere(req);
         const results = await Invoice.findAll({
             attributes: [
                 'customer_id',
@@ -189,7 +192,7 @@ exports.getTopCustomers = async (req, res) => {
  */
 exports.getProfitReportDetails = async (req, res) => {
     try {
-        const dateWhere = getDateRangeWhere(req.query);
+        const dateWhere = getReportWhere(req);
         let { page = 1, limit = 50 } = req.query;
         limit = parseInt(limit);
         const offset = (page - 1) * limit;
@@ -232,7 +235,7 @@ exports.getProfitReportDetails = async (req, res) => {
  */
 exports.getServiceWiseReport = async (req, res) => {
     try {
-        const dateWhere = getDateRangeWhere(req.query);
+        const dateWhere = getReportWhere(req);
         const results = await InvoiceItem.findAll({
             attributes: [
                 'description',
@@ -262,7 +265,7 @@ exports.getServiceWiseReport = async (req, res) => {
  */
 exports.getBalanceSheet = async (req, res) => {
     try {
-        const dateWhere = getDateRangeWhere(req.query);
+        const dateWhere = getReportWhere(req);
         const { WalletAccount, WalletTransaction } = require('../models');
 
         // --- 1. REVENUE & RECEIVABLES ---
@@ -318,7 +321,9 @@ exports.getBalanceSheet = async (req, res) => {
         const netProfit = grossProfit - totalExpenses;
 
         // --- 5. WALLET RECONCILIATION ---
-        const wallets = await WalletAccount.findAll();
+        const wallets = await WalletAccount.findAll({
+            where: { tenant_id: req.user.tenant_id }
+        });
         const walletReconciliations = await Promise.all(wallets.map(async (wallet) => {
             // Money Received: Income + Transfers In + Manual In
             const moneyReceived = await WalletTransaction.sum('amount', {
@@ -374,9 +379,21 @@ exports.getBalanceSheet = async (req, res) => {
             date: d.created_at
         }));
 
-        // Double Entry Check
-        const totalDebits = totalRevenue + paidExpenses + walletGovFees + outstandingReceivable;
-        const totalCredits = customerPayments + totalExpenses + invoiceGovFees + outstandingPayables;
+        const totalMoneyReceived = walletReconciliations.reduce((acc, w) => acc + w.money_received, 0);
+        const totalMoneyPaid = walletReconciliations.reduce((acc, w) => acc + w.money_paid, 0);
+        
+        // Any money received that isn't from customer payments is considered capital/other income
+        const otherIncome = totalMoneyReceived - customerPayments;
+        
+        // Any money paid that isn't for invoices or system expenses is considered drawings/other expense
+        const otherExpenses = totalMoneyPaid - (walletGovFees + paidExpenses);
+
+        // Double Entry Check (GAAP Trial Balance)
+        // Debits: Assets (Receivables, Cash in) + Expenses (Incurred Gov Fees, Incurred Expenses, Other Expenses)
+        const totalDebits = outstandingReceivable + customerPayments + invoiceGovFees + totalExpenses + otherExpenses;
+        
+        // Credits: Liabilities (Payables + Pending Gov Fees) + Equity/Revenue (Revenue, Other Income) + Asset Decreases (Cash out for fees/expenses)
+        const totalCredits = outstandingPayables + pendingGovFees + totalRevenue + walletGovFees + paidExpenses + otherIncome;
         const doubleEntryStatus = Math.abs(totalDebits - totalCredits) < 0.01;
 
         res.json({
@@ -408,10 +425,10 @@ exports.getBalanceSheet = async (req, res) => {
                 business_position: {
                     wallet_balances: totalWalletBalance,
                     receivables: outstandingReceivable,
-                    payables: outstandingPayables,
-                    expected_value: totalWalletBalance + outstandingReceivable - outstandingPayables,
-                    calculated_value: totalOpeningBalance + totalRevenue - invoiceGovFees - totalExpenses,
-                    difference: (totalWalletBalance + outstandingReceivable - outstandingPayables) - (totalOpeningBalance + totalRevenue - invoiceGovFees - totalExpenses)
+                    payables: outstandingPayables + pendingGovFees,
+                    expected_value: totalWalletBalance + outstandingReceivable - (outstandingPayables + pendingGovFees),
+                    calculated_value: totalOpeningBalance + totalRevenue + otherIncome - invoiceGovFees - totalExpenses - otherExpenses,
+                    difference: (totalWalletBalance + outstandingReceivable - (outstandingPayables + pendingGovFees)) - (totalOpeningBalance + totalRevenue + otherIncome - invoiceGovFees - totalExpenses - otherExpenses)
                 },
                 audit: {
                     duplicate_invoices: duplicateInvoices,

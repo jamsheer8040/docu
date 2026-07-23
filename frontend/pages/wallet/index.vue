@@ -242,6 +242,9 @@
 </template>
 
 <script setup>
+import { useUIStore } from '~/stores/ui'
+
+const uiStore = useUIStore()
 import { computed, ref, onMounted, watch } from 'vue';
 import { useWalletStore } from '@/stores/wallet';
 import { useAuthStore } from '@/stores/auth';
@@ -345,7 +348,7 @@ const saveWallet = async () => {
       successSnackbar.value = true;
       walletDialog.value = false;
     } else {
-      alert(res.message || 'Failed to save wallet');
+      uiStore.showError(res.message || 'Failed to save wallet');
     }
   } catch (error) {
     console.error(error);

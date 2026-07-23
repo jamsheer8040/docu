@@ -957,13 +957,19 @@ const shareDocument = async (url) => {
   }
 };
 
-const shareWhatsApp = (doc) => {
+const shareWhatsApp = async (doc) => {
   if (!doc.file_path) return;
   const baseUrl = config.public.apiBase.replace('/api/v1', '');
   const url = baseUrl + doc.file_path;
   const num = (auth.user?.role_type !== 'CustomerPortal' && doc.Customer?.phone_whatsapp) ? doc.Customer.phone_whatsapp : '';
   const msg = `Here is the document: ${doc.DocumentType?.name || doc.type} - ${doc.doc_number || ''}\n${url}`;
   openWhatsApp(num, msg);
+
+  try {
+    await documentStore.incrementReminderCount(doc.id);
+  } catch (err) {
+    console.error('Failed to increment reminder count:', err);
+  }
 };
 
 const sendWhatsAppReminder = async (doc) => {

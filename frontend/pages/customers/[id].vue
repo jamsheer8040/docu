@@ -86,14 +86,17 @@
           <v-tab value="invoices" class="font-weight-bold"><v-icon start icon="mdi-receipt"></v-icon> Invoices</v-tab>
         </v-tabs>
         <v-spacer></v-spacer>
-        <div class="d-flex align-center">
-          <v-btn size="small" color="secondary" prepend-icon="mdi-file-document-plus" variant="tonal" class="font-weight-bold" @click="addDocumentDialog = true">
+        <div class="d-flex align-center gap-2">
+          <v-btn size="small" color="primary" prepend-icon="mdi-file-document-plus" variant="flat" class="font-weight-bold" @click="addDocumentDialog = true">
             + Document
           </v-btn>
-          <v-btn size="small" color="secondary" prepend-icon="mdi-briefcase-plus" variant="tonal" class="font-weight-bold ml-2" @click="openAddService">
+          <v-btn size="small" color="primary" prepend-icon="mdi-briefcase-plus" variant="flat" class="font-weight-bold" @click="openAddService">
             + Service
           </v-btn>
-          <v-btn size="small" color="secondary" prepend-icon="mdi-receipt-text-plus" variant="tonal" class="font-weight-bold ml-2" @click="addInvoiceDialog = true">
+          <v-btn size="small" color="primary" prepend-icon="mdi-cart-plus" variant="flat" class="font-weight-bold" @click="addSalesOrderDialog = true">
+            + Sales Order
+          </v-btn>
+          <v-btn size="small" color="primary" prepend-icon="mdi-receipt-text-plus" variant="flat" class="font-weight-bold" @click="addInvoiceDialog = true">
             + Invoice
           </v-btn>
         </div>
@@ -356,6 +359,15 @@
       />
     </v-dialog>
 
+    <SalesOrderDialog
+      v-if="addSalesOrderDialog"
+      v-model="addSalesOrderDialog"
+      :initial-customer-id="customer.id"
+      :customers="[customer]"
+      :service-types="serviceTypes"
+      @saved="handleAddSalesOrderSave"
+    />
+
   </v-container>
   
   <div v-else-if="loading" class="d-flex justify-center align-center h-100 pt-16">
@@ -378,6 +390,7 @@ import CustomerForm from '~/components/customers/CustomerForm.vue';
 import DocumentForm from '~/components/documents/DocumentForm.vue';
 import ServiceOrderForm from '~/components/services/ServiceOrderForm.vue';
 import InvoiceDialog from '~/components/invoices/InvoiceDialog.vue';
+import SalesOrderDialog from '~/components/sales-orders/SalesOrderDialog.vue';
 import dayjs from 'dayjs';
 
 const route = useRoute();
@@ -393,6 +406,9 @@ const { openWhatsApp, MESSAGES } = useWhatsApp();
 const customer = ref(null);
 const loading = ref(true);
 const tab = ref('documents');
+
+const addSalesOrderDialog = ref(false);
+const serviceTypes = ref([]);
 
 const staffFilter = ref(null);
 const categoryFilter = ref(['Company Document', 'Personal Document']);
@@ -562,6 +578,12 @@ const handleAddInvoiceSave = () => {
   fetchCustomer();
 };
 
+const handleAddSalesOrderSave = () => {
+  uiStore.showSuccess('Sales Order added successfully');
+  addSalesOrderDialog.value = false;
+  // If there's a sales orders tab in the future, refresh it here.
+};
+
 const docHeaders = [
   { title: 'Document Type', key: 'doc_type_display', sortable: true },
   { title: 'Category', key: 'category', sortable: true },
@@ -588,9 +610,15 @@ const invoiceHeaders = [
 
 const fetchCustomer = async () => {
   try {
-    const res = await $api.get(`/customers/${route.params.id}`);
+    const [res, servRes] = await Promise.all([
+      $api.get(`/customers/${route.params.id}`),
+      $api.get('/services/types')
+    ]);
     if (res.data.success) {
       customer.value = res.data.data;
+    }
+    if (servRes.data.success) {
+      serviceTypes.value = servRes.data.data;
     }
   } catch (err) {
     console.error('Failed to load customer details', err);

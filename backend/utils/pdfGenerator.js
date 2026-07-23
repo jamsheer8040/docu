@@ -101,3 +101,109 @@ exports.generateInvoicePDF = (invoice, res) => {
 
     doc.end();
 };
+
+/**
+ * Generate Proforma Invoice PDF using pdfkit for a Sales Order
+ */
+exports.generateProformaInvoicePDF = (order, res) => {
+    const doc = new PDFDocument({ margin: 50 });
+
+    // Stream the PDF to the response
+    doc.pipe(res);
+
+    // --- Header ---
+    doc.fillColor('#444444')
+       .fontSize(24)
+       .text('DocClear Management System', 50, 50)
+       .fontSize(10)
+       .text('Building A-1, Business Bay', 50, 80)
+       .text('Dubai, UAE', 50, 95)
+       .text('Phone: +971 4 000 0000', 50, 110)
+       .moveDown();
+
+    // --- Invoice Info ---
+    doc.fillColor('#000000')
+       .fontSize(20)
+       .text('PROFORMA INVOICE', 50, 160);
+
+    doc.fontSize(10)
+       .text(`Reference No: ${order.order_number}`, 400, 160)
+       .text(`Date: ${new Date(order.order_date).toLocaleDateString('en-GB')}`, 400, 175)
+       .moveDown();
+
+    // --- Customer Info ---
+    doc.fontSize(12)
+       .font('Helvetica-Bold')
+       .text('Bill To:', 50, 220);
+    
+    doc.font('Helvetica')
+       .fontSize(10)
+       .text(order.Customer?.name || 'Customer Name', 50, 235)
+       .text(order.Customer?.email || 'Email: N/A', 50, 250)
+       .text(order.Customer?.phone_whatsapp || 'Phone: N/A', 50, 265);
+
+    // --- Table Header ---
+    const tableTop = 330;
+    doc.font('Helvetica-Bold')
+       .fontSize(10)
+       .text('Description', 50, tableTop)
+       .text('Qty', 300, tableTop)
+       .text('Unit Price', 350, tableTop, { width: 90, align: 'right' })
+       .text('Total', 450, tableTop, { width: 90, align: 'right' });
+
+    doc.moveTo(50, tableTop + 15)
+       .lineTo(550, tableTop + 15)
+       .stroke();
+
+    // --- Table Rows ---
+    let position = tableTop + 30;
+    doc.font('Helvetica');
+
+    let grandTotal = 0;
+
+    if (order.SalesOrderItems && Array.isArray(order.SalesOrderItems)) {
+        order.SalesOrderItems.forEach(item => {
+            const qty = item.quantity || 1;
+            const price = parseFloat(item.estimated_price || 0);
+            const total = qty * price;
+            grandTotal += total;
+
+            doc.fontSize(10)
+               .text(item.service_name || item.description || '', 50, position)
+               .text(qty.toString(), 300, position)
+               .text(`${price.toFixed(2)}`, 350, position, { width: 90, align: 'right' })
+               .text(`${total.toFixed(2)}`, 450, position, { width: 90, align: 'right' });
+
+            position += 20;
+            
+            // Add description on next line if available and different from service_name
+            if (item.description && item.description !== item.service_name) {
+                doc.fillColor('#666666')
+                   .fontSize(9)
+                   .text(item.description, 50, position);
+                doc.fillColor('#000000'); // Reset color
+                position += 15;
+            }
+        });
+    }
+
+    // --- Totals ---
+    const subtotalPosition = position + 30;
+    doc.moveTo(350, subtotalPosition - 10)
+       .lineTo(550, subtotalPosition - 10)
+       .stroke();
+
+    doc.font('Helvetica-Bold')
+       .fontSize(12)
+       .fillColor('#0B57D0')
+       .text('Grand Total (AED):', 310, subtotalPosition + 10, { width: 130, align: 'right' })
+       .text(`${grandTotal.toFixed(2)}`, 450, subtotalPosition + 10, { width: 90, align: 'right' });
+
+    // --- Footer ---
+    doc.fillColor('#aaaaaa')
+       .font('Helvetica')
+       .fontSize(10)
+       .text('This is a Proforma Invoice. Not a request for payment.', 50, 700, { align: 'center', width: 500 });
+
+    doc.end();
+};

@@ -1,29 +1,34 @@
 import { useAuthStore } from '~/stores/auth';
 import { useConfigStore } from '~/stores/config';
 
-export default defineNuxtRouteMiddleware((to, from) => {
+export default defineNuxtRouteMiddleware(async (to, from) => {
   if (import.meta.server) return;
 
   const nuxtApp = useNuxtApp();
   const authStore = useAuthStore(nuxtApp.$pinia);
   const configStore = useConfigStore(nuxtApp.$pinia);
 
+  // Always refresh user/tenant status from server on navigation (ensures approved tenants see updated status)
+  if (authStore.isAuthenticated && from?.path !== to.path) {
+    await authStore.fetchMe();
+  }
+
   // License Expiry Check
   // Allow login page, expired page, and developer to bypass expiry block
-  const bypassRoutes = ['/login', '/expired', '/developer', '/saas-portal'];
+  const bypassRoutes = ['/login', '/login/', '/expired', '/expired/', '/developer', '/developer/', '/saas-portal', '/saas-portal/'];
   if (configStore.isExpired && !bypassRoutes.includes(to.path) && authStore.user?.role !== 'Developer') {
      return navigateTo('/expired');
   }
 
   // Public pages that don't require authentication
-  const publicPages = ['/login', '/register'];
+  const publicPages = ['/login', '/register', '/login/', '/register/'];
   const authRequired = !publicPages.includes(to.path);
 
   if (authRequired && !authStore.isAuthenticated) {
     return navigateTo('/login');
   }
 
-  if (to.path === '/login' && authStore.isAuthenticated) {
+  if (['/login', '/login/'].includes(to.path) && authStore.isAuthenticated) {
     if (authStore.user?.role === 'Developer') {
       return navigateTo('/saas-portal');
     }
@@ -39,7 +44,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
 
   // Developer Strict Access Guard
   // A developer should ONLY be allowed on the /developer and /saas-portal pages.
-  if (authStore.isAuthenticated && authStore.user?.role === 'Developer' && !['/developer', '/saas-portal'].includes(to.path)) {
+  if (authStore.isAuthenticated && authStore.user?.role === 'Developer' && !['/developer', '/developer/', '/saas-portal', '/saas-portal/'].includes(to.path)) {
     return navigateTo('/saas-portal');
   }
 
@@ -48,16 +53,18 @@ export default defineNuxtRouteMiddleware((to, from) => {
     const routePermissions: Record<string, string> = {
       '/customers': 'customers',
       '/documents': 'documents',
+      '/sales-orders': 'sales_orders',
       '/services': 'services',
       '/invoices': 'invoices',
       '/expenses': 'expenses',
       '/wallet': 'wallet',
       '/reports': 'reports',
-      '/settings': 'settings'
+      '/settings': 'settings',
+      '/management': 'management'
     };
 
     // Find if the current path (or any parent path) requires a permission
-    const requiredModule = Object.keys(routePermissions).find(path => to.path.startsWith(path));
+    const requiredModule = Object.keys(routePermissions).find(routePath => to.path.startsWith(routePath));
     
     if (requiredModule) {
       const moduleName = routePermissions[requiredModule];

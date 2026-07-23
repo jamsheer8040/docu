@@ -123,6 +123,9 @@
 </template>
 
 <script setup>
+import { useUIStore } from '~/stores/ui'
+
+const uiStore = useUIStore()
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useExpenseStore } from '~/stores/expenses';
 import { useWalletStore } from '~/stores/wallet';
@@ -188,7 +191,7 @@ const save = async () => {
     }
     emit('save');
   } catch (err) {
-    alert(err.message || 'Operation failed');
+    uiStore.showError(err.message || 'Operation failed');
   }
 };
 </script>

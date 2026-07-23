@@ -102,13 +102,26 @@
         <template v-slot:item.paid_amount="{ item }">
           <span class="text-success font-weight-medium">AED {{ parseFloat(item.paid_amount || 0).toFixed(2) }}</span>
         </template>
+        <template v-slot:tfoot>
+          <tr v-if="items.length > 0" class="bg-grey-lighten-4 font-weight-black">
+            <td colspan="3" class="text-right">Page Total:</td>
+            <td class="text-right">AED {{ currentTotals.subtotal.toFixed(2) }}</td>
+            <td class="text-right">AED {{ currentTotals.tax.toFixed(2) }}</td>
+            <td class="text-right">AED {{ currentTotals.total.toFixed(2) }}</td>
+            <td class="text-right text-success">AED {{ currentTotals.paid_amount.toFixed(2) }}</td>
+            <td></td>
+          </tr>
+        </template>
       </v-data-table-server>
     </v-card>
   </v-container>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { useUIStore } from '~/stores/ui'
+
+const uiStore = useUIStore()
+import { ref, reactive, computed } from 'vue';
 
 const { $api } = useNuxtApp();
 
@@ -123,6 +136,16 @@ const filters = reactive({
   to: '',
   status: 'All',
   search: ''
+});
+
+const currentTotals = computed(() => {
+  return items.value.reduce((acc, curr) => {
+    acc.subtotal += parseFloat(curr.subtotal || 0)
+    acc.tax += parseFloat(curr.tax || 0)
+    acc.total += parseFloat(curr.total || 0)
+    acc.paid_amount += parseFloat(curr.paid_amount || 0)
+    return acc
+  }, { subtotal: 0, tax: 0, total: 0, paid_amount: 0 })
 });
 
 const headers = [
@@ -174,7 +197,7 @@ const onOptionsUpdate = ({ page, itemsPerPage: limit }) => {
 };
 
 const exportCSV = () => {
-  if (!items.value.length) return alert('No data to export');
+  if (!items.value.length) return uiStore.showError('No data to export');
   
   const csvHeaders = ['Date', 'Invoice No', 'Customer', 'Subtotal', 'Tax', 'Total', 'Paid Amount', 'Status'];
   const rows = items.value.map(item => [

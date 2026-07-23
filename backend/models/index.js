@@ -9,16 +9,19 @@ const Plan = require(path.join(__dirname, 'Plan.js'));
 const Tenant = require(path.join(__dirname, 'Tenant.js'));
 const TenantInvoice = require(path.join(__dirname, 'TenantInvoice.js'));
 const TenantHistory = require(path.join(__dirname, 'TenantHistory.js'));
-console.log('  Loaded: Plan, Tenant, TenantInvoice, TenantHistory');
+const PromoCode = require(path.join(__dirname, 'PromoCode.js'));
+console.log('  Loaded: Plan, Tenant, TenantInvoice, TenantHistory, PromoCode');
 
 // 1. User & Role
 const User = require(path.join(__dirname, 'User.js'));
 const Role = require(path.join(__dirname, 'Role.js'));
 console.log('  Loaded: User, Role');
 
-// 2. Customer
+// 2. Customer & Lead
 const Customer = require(path.join(__dirname, 'Customer.js'));
-console.log('  Loaded: Customer');
+const Lead = require(path.join(__dirname, 'Lead.js'));
+const LeadStatusHistory = require(path.join(__dirname, 'LeadStatusHistory.js'));
+console.log('  Loaded: Customer, Lead, LeadStatusHistory');
 
 // 3. Document & DocumentType
 const Document = require(path.join(__dirname, 'Document.js'));
@@ -45,6 +48,12 @@ console.log('  Loaded: ServiceTypePricing');
 const ServiceOrder = require(path.join(__dirname, 'ServiceOrder.js'));
 console.log('  Loaded: ServiceOrder');
 
+const SalesOrder = require(path.join(__dirname, 'SalesOrder.js'));
+console.log('  Loaded: SalesOrder');
+
+const SalesOrderItem = require(path.join(__dirname, 'SalesOrderItem.js'));
+console.log('  Loaded: SalesOrderItem');
+
 // 6. Invoice
 const Invoice = require(path.join(__dirname, 'Invoice.js'));
 console.log('  Loaded: Invoice');
@@ -66,9 +75,33 @@ console.log('  Loaded: Expense');
 const SystemConfig = require(path.join(__dirname, 'SystemConfig.js'));
 console.log('  Loaded: SystemConfig');
 
+// 7. Management / Shareholder
+const Shareholder = require(path.join(__dirname, 'Shareholder.js'));
+const OwnershipChange = require(path.join(__dirname, 'OwnershipChange.js'));
+const CapitalTransaction = require(path.join(__dirname, 'CapitalTransaction.js'));
+const DividendDeclaration = require(path.join(__dirname, 'DividendDeclaration.js'));
+const DividendDistribution = require(path.join(__dirname, 'DividendDistribution.js'));
+const DividendPayment = require(path.join(__dirname, 'DividendPayment.js'));
+console.log('  Loaded: Shareholder, CapitalTransaction, Dividends');
+
+// 8. Voucher Design & Audit Logs
+const VoucherDesign = require(path.join(__dirname, 'VoucherDesign.js'));
+const VoucherDesignAuditLog = require(path.join(__dirname, 'VoucherDesignAuditLog.js'));
+console.log('  Loaded: VoucherDesign, VoucherDesignAuditLog');
+
 // Define SaaS Associations
 Tenant.belongsTo(Plan, { foreignKey: 'plan_id' });
 Plan.hasMany(Tenant, { foreignKey: 'plan_id' });
+
+// Voucher Design & Audit Scoping
+VoucherDesign.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(VoucherDesign, { foreignKey: 'tenant_id' });
+
+VoucherDesignAuditLog.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(VoucherDesignAuditLog, { foreignKey: 'tenant_id' });
+
+VoucherDesignAuditLog.belongsTo(User, { foreignKey: 'user_id' });
+User.hasMany(VoucherDesignAuditLog, { foreignKey: 'user_id' });
 
 TenantInvoice.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 Tenant.hasMany(TenantInvoice, { foreignKey: 'tenant_id' });
@@ -85,6 +118,26 @@ Tenant.hasMany(Role, { foreignKey: 'tenant_id' });
 
 Customer.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 Tenant.hasMany(Customer, { foreignKey: 'tenant_id' });
+
+Lead.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(Lead, { foreignKey: 'tenant_id' });
+
+Lead.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
+User.hasMany(Lead, { foreignKey: 'created_by' });
+
+Lead.belongsTo(Customer, { foreignKey: 'customer_id', as: 'Customer' });
+Customer.hasMany(Lead, { foreignKey: 'customer_id' });
+
+LeadStatusHistory.belongsTo(Lead, { foreignKey: 'lead_id', onDelete: 'CASCADE' });
+Lead.hasMany(LeadStatusHistory, { foreignKey: 'lead_id', as: 'StatusHistories' });
+
+Lead.belongsTo(ServiceType, { foreignKey: 'service_id', as: 'Service' });
+ServiceType.hasMany(Lead, { foreignKey: 'service_id' });
+
+LeadStatusHistory.belongsTo(User, { foreignKey: 'changed_by', as: 'ChangedBy' });
+User.hasMany(LeadStatusHistory, { foreignKey: 'changed_by' });
+
+Lead.belongsTo(User, { foreignKey: 'converted_by', as: 'ConvertedBy' });
 
 Document.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 Tenant.hasMany(Document, { foreignKey: 'tenant_id' });
@@ -107,6 +160,12 @@ Tenant.hasMany(ServiceType, { foreignKey: 'tenant_id' });
 ServiceOrder.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 Tenant.hasMany(ServiceOrder, { foreignKey: 'tenant_id' });
 
+SalesOrder.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(SalesOrder, { foreignKey: 'tenant_id' });
+
+SalesOrderItem.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(SalesOrderItem, { foreignKey: 'tenant_id' });
+
 Invoice.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 Tenant.hasMany(Invoice, { foreignKey: 'tenant_id' });
 
@@ -124,6 +183,24 @@ Tenant.hasMany(ExpenseSubType, { foreignKey: 'tenant_id' });
 
 SystemConfig.belongsTo(Tenant, { foreignKey: 'tenant_id' });
 Tenant.hasMany(SystemConfig, { foreignKey: 'tenant_id' });
+
+Shareholder.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(Shareholder, { foreignKey: 'tenant_id' });
+
+OwnershipChange.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(OwnershipChange, { foreignKey: 'tenant_id' });
+
+CapitalTransaction.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(CapitalTransaction, { foreignKey: 'tenant_id' });
+
+DividendDeclaration.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(DividendDeclaration, { foreignKey: 'tenant_id' });
+
+DividendDistribution.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(DividendDistribution, { foreignKey: 'tenant_id' });
+
+DividendPayment.belongsTo(Tenant, { foreignKey: 'tenant_id' });
+Tenant.hasMany(DividendPayment, { foreignKey: 'tenant_id' });
 
 // Define Regular Associations
 User.belongsTo(Role, { foreignKey: 'role_id' });
@@ -147,6 +224,21 @@ Customer.hasMany(ServiceOrder, { foreignKey: 'customer_id' });
 ServiceOrder.belongsTo(ServiceType, { foreignKey: 'service_type_id' });
 ServiceType.hasMany(ServiceOrder, { foreignKey: 'service_type_id' });
 
+SalesOrder.belongsTo(Customer, { foreignKey: 'customer_id' });
+Customer.hasMany(SalesOrder, { foreignKey: 'customer_id' });
+
+SalesOrder.belongsTo(User, { foreignKey: 'sales_executive_id', as: 'SalesExecutive' });
+User.hasMany(SalesOrder, { foreignKey: 'sales_executive_id' });
+
+SalesOrderItem.belongsTo(SalesOrder, { foreignKey: 'sales_order_id' });
+SalesOrder.hasMany(SalesOrderItem, { foreignKey: 'sales_order_id' });
+
+SalesOrderItem.belongsTo(ServiceType, { foreignKey: 'service_type_id' });
+ServiceType.hasMany(SalesOrderItem, { foreignKey: 'service_type_id' });
+
+SalesOrderItem.belongsTo(ServiceOrder, { foreignKey: 'service_order_id' });
+ServiceOrder.hasOne(SalesOrderItem, { foreignKey: 'service_order_id' });
+
 ServiceTypePricing.belongsTo(ServiceType, { foreignKey: 'service_type_id' });
 ServiceType.hasMany(ServiceTypePricing, { foreignKey: 'service_type_id' });
 
@@ -168,12 +260,37 @@ ExpenseSubType.belongsTo(ExpenseType, { foreignKey: 'expense_type_id', as: 'Pare
 Expense.belongsTo(ExpenseSubType, { foreignKey: 'expense_sub_type_id', as: 'SubType' });
 ExpenseSubType.hasMany(Expense, { foreignKey: 'expense_sub_type_id' });
 
+// Management Relations
+OwnershipChange.belongsTo(Shareholder, { foreignKey: 'shareholder_id' });
+Shareholder.hasMany(OwnershipChange, { foreignKey: 'shareholder_id' });
+
+OwnershipChange.belongsTo(User, { foreignKey: 'user_id' });
+User.hasMany(OwnershipChange, { foreignKey: 'user_id' });
+
+CapitalTransaction.belongsTo(Shareholder, { foreignKey: 'shareholder_id' });
+Shareholder.hasMany(CapitalTransaction, { foreignKey: 'shareholder_id' });
+
+CapitalTransaction.belongsTo(WalletAccount, { foreignKey: 'wallet_id' });
+WalletAccount.hasMany(CapitalTransaction, { foreignKey: 'wallet_id' });
+
+DividendDistribution.belongsTo(DividendDeclaration, { foreignKey: 'declaration_id' });
+DividendDeclaration.hasMany(DividendDistribution, { foreignKey: 'declaration_id' });
+
+DividendDistribution.belongsTo(Shareholder, { foreignKey: 'shareholder_id' });
+Shareholder.hasMany(DividendDistribution, { foreignKey: 'shareholder_id' });
+
+DividendPayment.belongsTo(DividendDistribution, { foreignKey: 'distribution_id' });
+DividendDistribution.hasMany(DividendPayment, { foreignKey: 'distribution_id' });
+
+DividendPayment.belongsTo(WalletAccount, { foreignKey: 'wallet_id' });
+WalletAccount.hasMany(DividendPayment, { foreignKey: 'wallet_id' });
+
 console.log('[Models] All associations defined.');
 
 // Add Global Hooks for Automatic Tenant Scoping
 const tenantContext = require('../utils/tenantContext');
 
-sequelize.addHook('beforeFind', function(options) {
+sequelize.addHook('beforeFind', function (options) {
   const tenantId = tenantContext.getStore();
   if (tenantId !== undefined && tenantId !== null) {
     if (this.rawAttributes && this.rawAttributes.tenant_id) {
@@ -185,7 +302,7 @@ sequelize.addHook('beforeFind', function(options) {
   }
 });
 
-sequelize.addHook('beforeBulkUpdate', function(options) {
+sequelize.addHook('beforeBulkUpdate', function (options) {
   const tenantId = tenantContext.getStore();
   if (tenantId !== undefined && tenantId !== null) {
     if (this.rawAttributes && this.rawAttributes.tenant_id) {
@@ -197,7 +314,7 @@ sequelize.addHook('beforeBulkUpdate', function(options) {
   }
 });
 
-sequelize.addHook('beforeBulkDestroy', function(options) {
+sequelize.addHook('beforeBulkDestroy', function (options) {
   const tenantId = tenantContext.getStore();
   if (tenantId !== undefined && tenantId !== null) {
     if (this.rawAttributes && this.rawAttributes.tenant_id) {
@@ -209,7 +326,7 @@ sequelize.addHook('beforeBulkDestroy', function(options) {
   }
 });
 
-sequelize.addHook('beforeValidate', function(instance, options) {
+sequelize.addHook('beforeValidate', function (instance, options) {
   const tenantId = tenantContext.getStore();
   if (tenantId !== undefined && tenantId !== null) {
     if (instance.constructor.rawAttributes && instance.constructor.rawAttributes.tenant_id && (instance.tenant_id === undefined || instance.tenant_id === null)) {
@@ -218,7 +335,7 @@ sequelize.addHook('beforeValidate', function(instance, options) {
   }
 });
 
-sequelize.addHook('beforeCount', function(options) {
+sequelize.addHook('beforeCount', function (options) {
   const tenantId = tenantContext.getStore();
   if (tenantId !== undefined && tenantId !== null) {
     if (this.rawAttributes && this.rawAttributes.tenant_id) {
@@ -232,7 +349,7 @@ sequelize.addHook('beforeCount', function(options) {
 
 // Patch Model.aggregate to enforce tenant isolation since it bypasses beforeFind hooks
 const originalAggregate = Sequelize.Model.aggregate;
-Sequelize.Model.aggregate = async function(field, aggregateFunction, options) {
+Sequelize.Model.aggregate = async function (field, aggregateFunction, options) {
   options = options || {};
   const tenantId = tenantContext.getStore();
   if (tenantId !== undefined && tenantId !== null) {
@@ -254,9 +371,12 @@ const db = {
   Tenant,
   TenantInvoice,
   TenantHistory,
+  PromoCode,
   User,
   Role,
   Customer,
+  Lead,
+  LeadStatusHistory,
   Document,
   DocumentType,
   Tax,
@@ -265,12 +385,22 @@ const db = {
   ServiceType,
   ServiceTypePricing,
   ServiceOrder,
+  SalesOrder,
+  SalesOrderItem,
   Invoice,
   InvoiceItem,
   ExpenseType,
   ExpenseSubType,
   Expense,
-  SystemConfig
+  SystemConfig,
+  Shareholder,
+  OwnershipChange,
+  CapitalTransaction,
+  DividendDeclaration,
+  DividendDistribution,
+  DividendPayment,
+  VoucherDesign,
+  VoucherDesignAuditLog
 };
 
 module.exports = db;

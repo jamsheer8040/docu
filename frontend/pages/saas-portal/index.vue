@@ -100,6 +100,8 @@
         <v-tab value="tenants" class="font-weight-bold"><v-icon class="mr-2">mdi-domain</v-icon>Workspaces</v-tab>
         <v-tab value="plans" class="font-weight-bold"><v-icon class="mr-2">mdi-card-bulleted-settings-outline</v-icon>Subscription Plans</v-tab>
         <v-tab value="billing" class="font-weight-bold"><v-icon class="mr-2">mdi-receipt-text-outline</v-icon>Billing Invoices</v-tab>
+        <v-tab value="settings" class="font-weight-bold"><v-icon class="mr-2">mdi-cog</v-icon>Global Settings</v-tab>
+        <v-tab value="promo_codes" class="font-weight-bold"><v-icon class="mr-2">mdi-tag</v-icon>Promo Codes</v-tab>
       </v-tabs>
 
       <v-divider class="opacity-10"></v-divider>
@@ -166,6 +168,7 @@
 
               <template v-slot:item.actions="{ item }">
                 <v-btn icon="mdi-pencil-outline" variant="text" size="small" color="primary" @click="openEditTenant(item)"></v-btn>
+                <v-btn icon="mdi-calendar-plus" variant="text" size="small" color="success" @click="openExtendSubscription(item)" title="Extend Subscription"></v-btn>
                 <v-btn icon="mdi-history" variant="text" size="small" color="info" @click="openHistory(item)"></v-btn>
               </template>
             </v-data-table>
@@ -241,6 +244,57 @@
             </v-data-table>
           </v-window-item>
 
+          <!-- Global Settings -->
+          <v-window-item value="settings">
+            <v-card class="glass-card pa-6" variant="flat">
+              <div class="text-h6 font-weight-bold mb-4">Application Settings</div>
+              <v-form ref="settingsForm">
+                <v-text-field v-model="globalSettings.app_name" label="Application Name" class="mb-4"></v-text-field>
+                
+                <v-file-input v-model="logoFile" label="Upload Application Logo" accept="image/*" prepend-icon="" prepend-inner-icon="mdi-camera" class="mb-2" hint="Select an image to upload as the new logo" persistent-hint></v-file-input>
+                <div v-if="globalSettings.app_logo" class="mb-4 px-2">
+                  <div class="text-caption text-secondary mb-1">Current Logo:</div>
+                  <img :src="globalSettings.app_logo" alt="Current Logo" style="max-height: 60px; object-fit: contain;" />
+                </div>
+                
+                <v-divider class="my-6"></v-divider>
+                <div class="text-h6 font-weight-bold mb-4">SaaS Settings</div>
+                <v-text-field v-model="globalSettings.saas_trial_days" label="Default Trial Duration (Days)" type="number" class="mb-4" placeholder="14"></v-text-field>
+                <v-text-field v-model="globalSettings.saas_invoice_prefix" label="Invoice Prefix" class="mb-4" placeholder="SAAS-INV-"></v-text-field>
+                <v-textarea v-model="globalSettings.saas_invoice_footer" label="Invoice Footer / Notes" class="mb-4" rows="3"></v-textarea>
+                
+                <v-btn color="primary" rounded="xl" @click="saveGlobalSettings" :loading="loadingSettings">Save Settings</v-btn>
+              </v-form>
+            </v-card>
+          </v-window-item>
+
+          <!-- Promo Codes -->
+          <v-window-item value="promo_codes">
+            <div class="d-flex justify-space-between align-center mb-6">
+              <div class="text-h6 font-weight-bold">Promo Codes</div>
+              <v-btn color="primary" prepend-icon="mdi-plus" rounded="xl" @click="openCreatePromoCode">Create Promo Code</v-btn>
+            </div>
+            <v-data-table :headers="promoCodeHeaders" :items="promoCodes" :loading="loadingPromoCodes" class="bg-transparent">
+              <template v-slot:item.discount="{ item }">
+                {{ item.discount_type === 'percentage' ? item.discount_value + '%' : 'AED ' + item.discount_value }}
+              </template>
+              <template v-slot:item.uses="{ item }">
+                {{ item.current_uses }} / {{ item.max_uses || '∞' }}
+              </template>
+              <template v-slot:item.valid_until="{ item }">
+                {{ item.valid_until ? formatDate(item.valid_until) : 'Never' }}
+              </template>
+              <template v-slot:item.is_active="{ item }">
+                <v-chip size="small" :color="item.is_active ? 'success' : 'grey'" class="font-weight-bold">
+                  {{ item.is_active ? 'Active' : 'Inactive' }}
+                </v-chip>
+              </template>
+              <template v-slot:item.actions="{ item }">
+                <v-btn icon="mdi-pencil-outline" variant="text" size="small" color="primary" @click="openEditPromoCode(item)"></v-btn>
+              </template>
+            </v-data-table>
+          </v-window-item>
+
         </v-window>
       </v-card-text>
     </v-card>
@@ -262,7 +316,7 @@
 
             <v-select
               v-model="tenantDialog.data.status"
-              :items="['new_registration', 'trial', 'active', 'suspended', 'expired', 'trial_expired', 'cancelled', 'unpaid']"
+              :items="['new_registration', 'trial', 'active', 'suspended', 'expired', 'trial_expired', 'cancelled']"
               label="Account Status"
               class="mb-4"
             ></v-select>
@@ -376,6 +430,77 @@
       </v-card>
     </v-dialog>
 
+    <!-- Promo Code Dialog -->
+    <v-dialog v-model="promoCodeDialog.show" max-width="500" persistent>
+      <v-card class="rounded-2xl pa-4">
+        <v-card-title class="font-weight-black text-h5 mb-4">
+          {{ promoCodeDialog.isEdit ? 'Edit Promo Code' : 'Create Promo Code' }}
+        </v-card-title>
+        <v-card-text>
+          <v-form ref="promoCodeForm">
+            <v-text-field v-model="promoCodeDialog.data.code" label="Code (e.g., SUMMER50)" class="mb-4" :disabled="promoCodeDialog.isEdit"></v-text-field>
+            
+            <v-row>
+              <v-col cols="6">
+                <v-select v-model="promoCodeDialog.data.discount_type" :items="['percentage', 'fixed']" label="Discount Type" class="mb-4"></v-select>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field v-model.number="promoCodeDialog.data.discount_value" label="Value" type="number" class="mb-4"></v-text-field>
+              </v-col>
+            </v-row>
+
+            <v-row>
+              <v-col cols="6">
+                <v-text-field v-model="promoCodeDialog.data.valid_from" label="Valid From" type="date" class="mb-4"></v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field v-model="promoCodeDialog.data.valid_until" label="Valid Until" type="date" class="mb-4"></v-text-field>
+              </v-col>
+            </v-row>
+
+            <v-text-field v-model.number="promoCodeDialog.data.max_uses" label="Maximum Uses" type="number" hint="Leave blank for unlimited" persistent-hint class="mb-4"></v-text-field>
+
+            <v-checkbox v-model="promoCodeDialog.data.is_active" label="Is Active" color="primary"></v-checkbox>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="promoCodeDialog.show = false">Cancel</v-btn>
+          <v-btn color="primary" variant="flat" class="px-6 rounded-lg" @click="savePromoCode">Save</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Extend Subscription Dialog -->
+    <v-dialog v-model="extendDialog.show" max-width="400" persistent>
+      <v-card class="rounded-2xl pa-4">
+        <v-card-title class="font-weight-black text-h5 mb-4">Extend Subscription</v-card-title>
+        <v-card-text>
+          <v-form ref="extendForm">
+            <v-select
+              v-model="extendDialog.data.extension_type"
+              :items="[{title: '+1 Month', value: 'month'}, {title: '+1 Year', value: 'year'}, {title: 'Custom Date', value: 'custom'}]"
+              label="Extension Amount"
+              class="mb-4"
+            ></v-select>
+            
+            <v-text-field
+              v-if="extendDialog.data.extension_type === 'custom'"
+              v-model="extendDialog.data.custom_date"
+              label="Custom End Date"
+              type="date"
+              class="mb-4"
+            ></v-text-field>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="extendDialog.show = false">Cancel</v-btn>
+          <v-btn color="success" variant="flat" class="px-6 rounded-lg" @click="saveExtendSubscription" :loading="extendDialog.loading">Extend</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-snackbar v-model="toast.show" :color="toast.color" rounded="pill" location="top center">
       {{ toast.text }}
     </v-snackbar>
@@ -400,10 +525,22 @@ const stats = ref({});
 const tenants = ref([]);
 const plans = ref([]);
 const invoices = ref([]);
+const promoCodes = ref([]);
+const globalSettings = ref({
+  app_name: '',
+  app_logo: '',
+  saas_trial_days: 14,
+  saas_invoice_prefix: '',
+  saas_invoice_footer: ''
+});
+
+const logoFile = ref(null);
 
 const loadingTenants = ref(false);
 const loadingPlans = ref(false);
 const loadingInvoices = ref(false);
+const loadingPromoCodes = ref(false);
+const loadingSettings = ref(false);
 const tenantSearch = ref('');
 
 const toast = reactive({
@@ -414,6 +551,7 @@ const toast = reactive({
 
 const tenantHeaders = [
   { title: 'Company', key: 'name' },
+  { title: 'Admin Email', key: 'email' },
   { title: 'Registered Date', key: 'created_at' },
   { title: 'Status', key: 'status' },
   { title: 'Package', key: 'Plan' },
@@ -440,12 +578,37 @@ const invoiceHeaders = [
   { title: 'Actions', key: 'actions', sortable: false }
 ];
 
+const promoCodeHeaders = [
+  { title: 'Code', key: 'code' },
+  { title: 'Discount', key: 'discount' },
+  { title: 'Uses', key: 'uses' },
+  { title: 'Valid Until', key: 'valid_until' },
+  { title: 'Active', key: 'is_active' },
+  { title: 'Actions', key: 'actions', sortable: false }
+];
+
 const tenantDialog = reactive({
   show: false,
   data: {}
 });
 
+const extendDialog = reactive({
+  show: false,
+  loading: false,
+  data: {
+    tenant_id: null,
+    extension_type: 'month',
+    custom_date: ''
+  }
+});
+
 const planDialog = reactive({
+  show: false,
+  isEdit: false,
+  data: {}
+});
+
+const promoCodeDialog = reactive({
   show: false,
   isEdit: false,
   data: {}
@@ -470,6 +633,8 @@ onMounted(async () => {
   await fetchTenants();
   await fetchPlans();
   await fetchInvoices();
+  await fetchSettings();
+  await fetchPromoCodes();
 });
 
 const fetchStats = async () => {
@@ -520,6 +685,62 @@ const fetchInvoices = async () => {
     showToast('Error loading billing invoices', 'error');
   } finally {
     loadingInvoices.value = false;
+  }
+};
+
+const fetchSettings = async () => {
+  try {
+    const res = await $api.get('/saas/settings');
+    if (res.data.success) {
+      globalSettings.value = { ...globalSettings.value, ...res.data.data };
+    }
+  } catch (err) {
+    showToast('Error loading global settings', 'error');
+  }
+};
+
+const fetchPromoCodes = async () => {
+  loadingPromoCodes.value = true;
+  try {
+    const res = await $api.get('/saas/promo-codes');
+    if (res.data.success) promoCodes.value = res.data.data;
+  } catch (err) {
+    showToast('Error loading promo codes', 'error');
+  } finally {
+    loadingPromoCodes.value = false;
+  }
+};
+
+const saveGlobalSettings = async () => {
+  loadingSettings.value = true;
+  try {
+    if (logoFile.value) {
+      // Vuetify file input might return an array or a single file
+      const fileToUpload = Array.isArray(logoFile.value) ? logoFile.value[0] : logoFile.value;
+      if (fileToUpload) {
+        const formData = new FormData();
+        formData.append('logo', fileToUpload);
+        
+        const uploadRes = await $api.post('/saas/settings/logo', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        if (uploadRes.data.success) {
+          globalSettings.value.app_logo = uploadRes.data.url;
+          logoFile.value = null;
+        }
+      }
+    }
+
+    const res = await $api.put('/saas/settings', globalSettings.value);
+    if (res.data.success) {
+      showToast('Global settings updated successfully', 'success');
+      globalSettings.value = { ...globalSettings.value, ...res.data.data };
+      await fetchSettings();
+    }
+  } catch (err) {
+    showToast('Failed to save settings', 'error');
+  } finally {
+    loadingSettings.value = false;
   }
 };
 
@@ -584,11 +805,44 @@ const saveTenantChanges = async () => {
       tenantDialog.show = false;
       await fetchTenants();
       await fetchStats();
+      await fetchInvoices();
     }
   } catch (err) {
     showToast('Failed to update workspace configuration.', 'error');
   }
 };
+
+const openExtendSubscription = (item) => {
+  extendDialog.data = {
+    tenant_id: item.id,
+    extension_type: 'month',
+    custom_date: ''
+  };
+  extendDialog.show = true;
+};
+
+const saveExtendSubscription = async () => {
+  extendDialog.loading = true;
+  try {
+    const res = await $api.put(`/saas/tenants/${extendDialog.data.tenant_id}/extend`, {
+      extension_type: extendDialog.data.extension_type,
+      custom_date: extendDialog.data.custom_date
+    });
+    if (res.data.success) {
+      showToast('Subscription extended successfully', 'success');
+      extendDialog.show = false;
+      await fetchTenants();
+      await fetchStats();
+      await fetchInvoices();
+    }
+  } catch (err) {
+    showToast(err.response?.data?.message || 'Failed to extend subscription', 'error');
+  } finally {
+    extendDialog.loading = false;
+  }
+};
+
+
 
 const openCreatePlan = () => {
   planDialog.isEdit = false;
@@ -634,6 +888,7 @@ const savePlanChanges = async () => {
       showToast(planDialog.isEdit ? 'Plan updated.' : 'New Plan created.', 'success');
       planDialog.show = false;
       await fetchPlans();
+      await fetchTenants();
     }
   } catch (err) {
     showToast('Failed to save subscription plan.', 'error');
@@ -647,9 +902,66 @@ const paySaaSInvoice = async (id) => {
       showToast('Invoice marked as paid.', 'success');
       await fetchInvoices();
       await fetchTenants();
+      await fetchStats();
     }
   } catch (err) {
     showToast('Payment processing failed.', 'error');
+  }
+};
+
+const openCreatePromoCode = () => {
+  promoCodeDialog.isEdit = false;
+  promoCodeDialog.data = {
+    code: '',
+    discount_type: 'percentage',
+    discount_value: 0,
+    valid_from: '',
+    valid_until: '',
+    max_uses: null,
+    is_active: true
+  };
+  promoCodeDialog.show = true;
+};
+
+const openEditPromoCode = (item) => {
+  promoCodeDialog.isEdit = true;
+  promoCodeDialog.data = {
+    id: item.id,
+    code: item.code,
+    discount_type: item.discount_type,
+    discount_value: parseFloat(item.discount_value),
+    valid_from: item.valid_from ? dayjs(item.valid_from).format('YYYY-MM-DD') : '',
+    valid_until: item.valid_until ? dayjs(item.valid_until).format('YYYY-MM-DD') : '',
+    max_uses: item.max_uses,
+    is_active: item.is_active
+  };
+  promoCodeDialog.show = true;
+};
+
+const savePromoCode = async () => {
+  try {
+    // Convert empty strings to null for dates
+    const payload = { ...promoCodeDialog.data };
+    if (!payload.valid_from) payload.valid_from = null;
+    if (!payload.valid_until) payload.valid_until = null;
+    if (payload.max_uses === '') payload.max_uses = null;
+
+    let res;
+    if (promoCodeDialog.isEdit) {
+      res = await $api.put(`/saas/promo-codes/${payload.id}`, payload);
+    } else {
+      res = await $api.post('/saas/promo-codes', payload);
+    }
+
+    if (res.data.success) {
+      showToast(promoCodeDialog.isEdit ? 'Promo code updated.' : 'Promo code created.', 'success');
+      promoCodeDialog.show = false;
+      await fetchPromoCodes();
+    } else {
+      showToast(res.data.message || 'Failed to save promo code.', 'error');
+    }
+  } catch (err) {
+    showToast(err.response?.data?.message || 'Failed to save promo code.', 'error');
   }
 };
 

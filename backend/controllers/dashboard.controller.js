@@ -31,7 +31,7 @@ exports.getStats = async (req, res) => {
     const whereDoc = {};
     const whereInvoice = { status: 'Paid', created_at: { [Op.between]: [startOfMonth, endOfMonth] } };
     const whereExpense = { status: 'Paid', created_at: { [Op.between]: [startOfMonth, endOfMonth] } };
-    const whereService = { status: { [Op.in]: ['Pending', 'InProgress'] } };
+    const whereService = { status: { [Op.in]: ['Pending', 'In Progress'] } };
 
     if (customer_id) {
       whereDoc.customer_id = customer_id;

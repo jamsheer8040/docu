@@ -113,9 +113,11 @@
                       <span class="text-caption font-weight-bold opacity-50">#{{ order.id }}</span>
                       <div class="d-flex align-center gap-1">
                         <v-chip size="x-small" color="deep-purple" variant="tonal" class="font-weight-bold">{{ order.ServiceType?.name }}</v-chip>
-                        <v-chip size="x-small" :color="order.criticality === 'Critical' ? 'error' : (order.criticality === 'Moderate' ? 'orange' : 'success')" variant="flat" class="font-weight-bold text-caption">
-                          {{ order.criticality }}
-                        </v-chip>
+                        <v-icon
+                          :color="order.criticality === 'Critical' ? 'error' : (order.criticality === 'Moderate' ? 'orange' : 'success')"
+                          size="small"
+                          :title="'Priority: ' + order.criticality"
+                        >mdi-lightbulb-on</v-icon>
                       </div>
                     </div>
                     <div class="text-body-2 font-weight-bold mb-1">{{ order.Customer?.name }}</div>
@@ -154,11 +156,12 @@
                         v-if="auth.can('services', 'write')"
                         color="primary" block variant="tonal" size="small"
                         append-icon="mdi-play-circle-outline"
-                        @click.stop="updateStatus(order, 'InProgress')"
+                        @click.stop="updateStatus(order, 'In Progress')"
                         class="ml-1"
                       >Start Service</v-btn>
                     </div>
                     <div class="d-flex justify-end mt-2 pt-2 border-t">
+                      <v-btn v-if="auth.can('services', 'write')" icon="mdi-close-circle-outline" variant="text" size="x-small" color="warning" class="mr-1" title="Cancel Order" @click.stop="updateStatus(order, 'Cancelled')"></v-btn>
                       <v-btn v-if="auth.can('services', 'write') && !hasInvoice(order)" icon="mdi-pencil-outline" variant="text" size="x-small" color="primary" class="mr-1" @click.stop="openEditOrderForm(order)"></v-btn>
                       <v-btn v-if="auth.can('services', 'delete')" icon="mdi-delete-outline" variant="text" size="x-small" color="error" @click.stop="confirmDeleteOrder(order)"></v-btn>
                     </div>
@@ -173,18 +176,20 @@
               <div class="kanban-header kanban-header--inprogress mb-4">
                 <v-icon icon="mdi-progress-clock" size="18" class="mr-2"></v-icon>
                 <span class="text-subtitle-2 font-weight-bold">In Progress</span>
-                <v-chip size="x-small" class="ml-auto font-weight-bold" color="primary">{{ groupedOrders.InProgress.length }}</v-chip>
+                <v-chip size="x-small" class="ml-auto font-weight-bold" color="primary">{{ groupedOrders['In Progress'].length }}</v-chip>
               </div>
               <v-slide-y-transition group>
-                <v-card v-for="order in groupedOrders.InProgress" :key="order.id" class="mb-3 order-card" :class="'criticality-border-' + order.criticality" border>
+                <v-card v-for="order in groupedOrders['In Progress']" :key="order.id" class="mb-3 order-card" :class="'criticality-border-' + order.criticality" border>
                   <v-card-text class="pa-3">
                     <div class="d-flex justify-space-between align-center mb-2">
                       <span class="text-caption font-weight-bold opacity-50">#{{ order.id }}</span>
                       <div class="d-flex align-center gap-1">
                         <v-chip size="x-small" color="deep-purple" variant="tonal" class="font-weight-bold">{{ order.ServiceType?.name }}</v-chip>
-                        <v-chip size="x-small" :color="order.criticality === 'Critical' ? 'error' : (order.criticality === 'Moderate' ? 'orange' : 'success')" variant="flat" class="font-weight-bold text-caption">
-                          {{ order.criticality }}
-                        </v-chip>
+                        <v-icon
+                          :color="order.criticality === 'Critical' ? 'error' : (order.criticality === 'Moderate' ? 'orange' : 'success')"
+                          size="small"
+                          :title="'Priority: ' + order.criticality"
+                        >mdi-lightbulb-on</v-icon>
                       </div>
                     </div>
                     <div class="text-body-2 font-weight-bold mb-1">{{ order.Customer?.name }}</div>
@@ -231,13 +236,14 @@
                         class="ml-1"
                       >Complete Service</v-btn>
                     </div>
-                    <div v-if="auth.can('services', 'write') && !hasInvoice(order)" class="d-flex justify-end mt-2 pt-2 border-t">
-                      <v-btn icon="mdi-pencil-outline" variant="text" size="x-small" color="primary" @click.stop="openEditOrderForm(order)"></v-btn>
+                    <div class="d-flex justify-end mt-2 pt-2 border-t">
+                      <v-btn v-if="auth.can('services', 'write')" icon="mdi-close-circle-outline" variant="text" size="x-small" color="warning" class="mr-1" title="Cancel Order" @click.stop="updateStatus(order, 'Cancelled')"></v-btn>
+                      <v-btn v-if="auth.can('services', 'write') && !hasInvoice(order)" icon="mdi-pencil-outline" variant="text" size="x-small" color="primary" @click.stop="openEditOrderForm(order)"></v-btn>
                     </div>
                   </v-card-text>
                 </v-card>
               </v-slide-y-transition>
-              <div v-if="groupedOrders.InProgress.length === 0" class="empty-col">No services in progress</div>
+              <div v-if="groupedOrders['In Progress'].length === 0" class="empty-col">No services in progress</div>
             </v-col>
 
             <!-- 3. COMPLETED — INVOICE PENDING -->
@@ -393,9 +399,11 @@
             <template v-slot:item.ServiceType="{ item }">
               <div class="font-weight-bold d-flex align-center gap-2">
                 {{ item.ServiceType?.name }}
-                <v-chip size="x-small" :color="item.criticality === 'Critical' ? 'error' : (item.criticality === 'Moderate' ? 'orange' : 'success')" label class="font-weight-bold">
-                  {{ item.criticality }}
-                </v-chip>
+                <v-icon
+                  :color="item.criticality === 'Critical' ? 'error' : (item.criticality === 'Moderate' ? 'orange' : 'success')"
+                  size="small"
+                  :title="'Priority: ' + item.criticality"
+                >mdi-lightbulb-on</v-icon>
               </div>
               <div class="text-caption text-grey">{{ item.ServiceType?.category }}</div>
             </template>
@@ -429,26 +437,20 @@
             </template>
 
             <template v-slot:item.status="{ item }">
-              <v-select
-                v-if="auth.can('services', 'write')"
-                v-model="item.status"
-                :items="statusOptions"
-                density="compact"
-                hide-details
-                variant="outlined"
-                rounded="lg"
-                style="min-width: 220px"
-                @update:model-value="(val) => updateStatus(item, val)"
-              >
-                <template v-slot:selection="{ item: s }">
-                  <v-chip :color="getStatusColor(s.value)" size="x-small" label class="font-weight-bold text-uppercase">
-                    {{ s.title }}
-                  </v-chip>
-                </template>
-              </v-select>
-              <v-chip v-else :color="getStatusColor(item.status)" size="x-small" label class="font-weight-bold">
-                {{ item.status }}
+              <v-chip :color="getStatusColor(item.status)" size="x-small" label class="font-weight-bold">
+                <template v-if="item.status === 'CompletedInvoicePending'">Completed – Inv. Pending</template>
+                <template v-else-if="item.status === 'CompletedInvoiceCreated'">Completed – Inv. Created</template>
+                <template v-else>{{ item.status }}</template>
               </v-chip>
+              <div v-if="item.status === 'CompletedInvoiceCreated' && hasInvoice(item)" class="mt-1">
+                <span 
+                  class="text-caption text-primary font-weight-black cursor-pointer text-decoration-underline d-inline-flex align-center"
+                  @click="openInvoiceView(item.Invoice)"
+                >
+                  <v-icon size="x-small" icon="mdi-receipt-text-outline" class="mr-1"></v-icon>
+                  {{ item.Invoice?.invoice_number }}
+                </span>
+              </div>
             </template>
 
             <template v-slot:item.actions="{ item }">
@@ -457,22 +459,69 @@
                 <span class="text-caption font-weight-bold">{{ item.reminder_count || 0 }}</span>
               </v-btn>
               <v-btn
-                v-if="['Pending', 'InProgress'].includes(item.status) && auth.can('services', 'write') && !hasInvoice(item)"
+                v-if="['Pending', 'In Progress'].includes(item.status) && auth.can('services', 'write') && !hasInvoice(item)"
                 icon="mdi-pencil-outline"
                 variant="text"
                 size="small"
                 color="primary"
+                title="Edit"
                 @click="openEditOrderForm(item)"
               ></v-btn>
               <v-btn
+                v-if="item.status === 'Pending' && auth.can('services', 'write')"
+                prepend-icon="mdi-play-circle-outline"
+                variant="tonal"
+                size="x-small"
+                color="primary"
+                class="mr-1"
+                @click="updateStatus(item, 'In Progress')"
+              >Start Service</v-btn>
+              <v-btn
+                v-if="item.status === 'In Progress' && auth.can('services', 'write')"
+                prepend-icon="mdi-check-circle-outline"
+                variant="tonal"
+                size="x-small"
+                color="success"
+                class="mr-1"
+                @click="confirmOrderCompletion(item)"
+              >Complete</v-btn>
+              <v-btn
+                v-if="['Pending', 'In Progress'].includes(item.status) && auth.can('services', 'write')"
+                prepend-icon="mdi-close-circle-outline"
+                variant="tonal"
+                size="x-small"
+                color="warning"
+                class="mr-1"
+                @click="updateStatus(item, 'Cancelled')"
+              >Cancel</v-btn>
+              <v-btn
                 v-if="item.status === 'CompletedInvoicePending' && auth.can('invoices', 'write')"
-                icon="mdi-receipt-text-plus"
-                variant="text"
-                size="small"
+                prepend-icon="mdi-receipt-text-plus"
+                variant="flat"
+                size="x-small"
                 color="orange"
+                class="mr-1"
                 @click="triggerCreateInvoice(item)"
-              ></v-btn>
-              <v-btn v-if="auth.can('services', 'delete')" icon="mdi-delete-outline" variant="text" size="small" color="error" @click="confirmDeleteOrder(item)"></v-btn>
+              >Create Invoice</v-btn>
+              <v-btn
+                v-if="['CompletedInvoicePending', 'CompletedInvoiceCreated'].includes(item.status) && auth.can('services', 'write')"
+                prepend-icon="mdi-undo"
+                variant="tonal"
+                size="x-small"
+                color="grey"
+                class="mr-1"
+                @click="revertOrder(item)"
+              >Revert</v-btn>
+              <v-btn
+                v-if="item.status === 'Cancelled' && auth.can('services', 'write')"
+                prepend-icon="mdi-restore"
+                variant="tonal"
+                size="x-small"
+                color="primary"
+                class="mr-1"
+                @click="updateStatus(item, 'Pending')"
+              >Restore</v-btn>
+              <v-btn v-if="auth.can('services', 'delete')" icon="mdi-delete-outline" variant="text" size="small" color="error" title="Delete" @click="confirmDeleteOrder(item)"></v-btn>
             </template>
 
           </v-data-table>
@@ -578,7 +627,7 @@ const confirmDialog = reactive({ show: false, title: '', message: '', confirmTex
 // ─── Status Options ────────────────────────────────────────────────────────────
 const statusOptions = [
   { title: 'Pending',                   value: 'Pending' },
-  { title: 'In Progress',               value: 'InProgress' },
+  { title: 'In Progress',               value: 'In Progress' },
   { title: 'Completed – Inv. Pending',  value: 'CompletedInvoicePending' },
   { title: 'Completed – Inv. Created',  value: 'CompletedInvoiceCreated' },
   { title: 'Cancelled',                 value: 'Cancelled' },
@@ -625,7 +674,7 @@ const activeServiceTypes = computed(() =>
 const groupedOrders = computed(() => {
   const groups = {
     Pending: [],
-    InProgress: [],
+    'In Progress': [],
     CompletedInvoicePending: [],
     CompletedInvoiceCreated: [],
     Cancelled: []
@@ -743,7 +792,7 @@ const executeOrderCompletion = async () => {
 // ─── Revert ───────────────────────────────────────────────────────────────────
 const revertOrder = async (order) => {
   try {
-    await serviceStore.updateOrderStatus(order.id, 'InProgress');
+    await serviceStore.updateOrderStatus(order.id, 'In Progress');
     showSnackbar('Service reverted to In Progress');
   } catch (err) {
     showSnackbar(err.message || 'Failed to revert', 'error');
@@ -777,7 +826,7 @@ const onInvoiceSaved = () => {
 const getStatusColor = (status) => {
   const map = {
     Pending:                 'grey',
-    InProgress:              'primary',
+    'In Progress':              'primary',
     CompletedInvoicePending: 'orange',
     CompletedInvoiceCreated: 'success',
     Cancelled:               'error',

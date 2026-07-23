@@ -38,6 +38,10 @@ const reportsRoutes = require('./routes/reports.routes');
 const configRoutes = require('./routes/config.routes');
 const saasRoutes = require('./routes/saas.routes');
 const taxRoutes = require('./routes/tax.routes');
+const salesOrderRoutes = require('./routes/sales-order.routes');
+const managementRoutes = require('./routes/management.routes');
+const voucherDesignRoutes = require('./routes/voucher-design.routes');
+const leadRoutes = require('./routes/lead.routes');
 
 // Sync Database in development
 sequelize.sync()
@@ -56,7 +60,8 @@ sequelize.sync()
       wallet: { read: true, write: true, delete: true },
       reports: { read: true, write: true, delete: true },
       settings: { read: true, write: true, delete: true },
-      financials: { read: true, write: true, delete: true }
+      financials: { read: true, write: true, delete: true },
+      management: { read: true, write: true, delete: true }
     };
 
     const [adminRole] = await Role.findOrCreate({
@@ -79,7 +84,8 @@ sequelize.sync()
           wallet: { read: false, write: false, delete: false },
           reports: { read: false, write: false, delete: false },
           settings: { read: false, write: false, delete: false },
-          financials: { read: false, write: false, delete: false }
+          financials: { read: false, write: false, delete: false },
+          management: { read: false, write: false, delete: false }
         },
         tenant_id: 1
       }
@@ -226,6 +232,10 @@ app.use('/api/v1/document-types', documentTypeRoutes);
 app.use('/api/v1/config', configRoutes);
 app.use('/api/v1/saas', saasRoutes);
 app.use('/api/v1/taxes', taxRoutes);
+app.use('/api/v1/sales-orders', salesOrderRoutes);
+app.use('/api/v1/management', managementRoutes);
+app.use('/api/v1/voucher-designs', voucherDesignRoutes);
+app.use('/api/v1/leads', leadRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

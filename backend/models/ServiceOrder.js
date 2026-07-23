@@ -16,7 +16,7 @@ const ServiceOrder = sequelize.define('ServiceOrder', {
     allowNull: false
   },
   status: {
-    type: DataTypes.ENUM('Pending', 'InProgress', 'CompletedInvoicePending', 'CompletedInvoiceCreated', 'Cancelled'),
+    type: DataTypes.ENUM('Pending', 'Assigned', 'In Progress', 'Waiting for Customer', 'On Hold', 'Completed', 'Cancelled', 'CompletedInvoicePending', 'CompletedInvoiceCreated'),
     defaultValue: 'Pending',
     allowNull: false
   },

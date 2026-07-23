@@ -97,13 +97,24 @@
           {{ item.SubType?.ParentType?.type_name || item.category || 'Uncategorized' }}
           <span v-if="item.SubType" class="text-caption text-grey">({{ item.SubType.sub_type_name }})</span>
         </template>
+        <template v-slot:tfoot>
+          <tr v-if="items.length > 0" class="bg-grey-lighten-4 font-weight-black">
+            <td colspan="3" class="text-right">Page Total:</td>
+            <td class="text-right text-error">AED {{ currentTotals.amount.toFixed(2) }}</td>
+            <td class="text-right text-success">AED {{ currentTotals.paid_amount.toFixed(2) }}</td>
+            <td></td>
+          </tr>
+        </template>
       </v-data-table-server>
     </v-card>
   </v-container>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { useUIStore } from '~/stores/ui'
+
+const uiStore = useUIStore()
+import { ref, reactive, computed, onMounted } from 'vue';
 
 const { $api } = useNuxtApp();
 
@@ -118,6 +129,14 @@ const filters = reactive({
   to: '',
   status: 'All',
   search: ''
+});
+
+const currentTotals = computed(() => {
+  return items.value.reduce((acc, curr) => {
+    acc.amount += parseFloat(curr.amount || 0)
+    acc.paid_amount += parseFloat(curr.paid_amount || 0)
+    return acc
+  }, { amount: 0, paid_amount: 0 })
 });
 
 const headers = [
@@ -168,7 +187,7 @@ const onOptionsUpdate = ({ page, itemsPerPage: limit }) => {
 };
 
 const exportCSV = () => {
-  if (!items.value.length) return alert('No data to export');
+  if (!items.value.length) return uiStore.showError('No data to export');
   
   const csvHeaders = ['Date', 'Reference', 'Description', 'Category', 'Sub Type', 'Total Amount', 'Paid Amount', 'Status'];
   const rows = items.value.map(item => [

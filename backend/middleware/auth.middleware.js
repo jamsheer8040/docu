@@ -53,7 +53,7 @@ exports.verifyToken = async (req, res, next) => {
         });
       }
 
-      if (['new_registration', 'trial_expired', 'expired', 'unpaid'].includes(tenantStatus) && req.method !== 'GET') {
+      if (['new_registration', 'trial_expired', 'expired'].includes(tenantStatus) && req.method !== 'GET') {
         return res.status(403).json({
           success: false,
           message: 'Your organization subscription is not active. Transactions are currently blocked.'

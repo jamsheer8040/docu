@@ -313,7 +313,9 @@ exports.registerTenant = async (req, res) => {
       wallet: { read: true, write: true, delete: true },
       reports: { read: true, write: true, delete: true },
       settings: { read: true, write: true, delete: true },
-      financials: { read: true, write: true, delete: true }
+      financials: { read: true, write: true, delete: true },
+      management: { read: true, write: true, delete: true },
+      sales_orders: { read: true, write: true, delete: true }
     };
 
     const adminRole = await Role.create({
@@ -334,7 +336,9 @@ exports.registerTenant = async (req, res) => {
         wallet: { read: false, write: false, delete: false },
         reports: { read: false, write: false, delete: false },
         settings: { read: false, write: false, delete: false },
-        financials: { read: false, write: false, delete: false }
+        financials: { read: false, write: false, delete: false },
+        management: { read: false, write: false, delete: false },
+        sales_orders: { read: true, write: true, delete: false }
       },
       tenant_id: tenant.id
     }, { transaction });
@@ -352,8 +356,11 @@ exports.registerTenant = async (req, res) => {
         wallet: { read: false, write: false, delete: false },
         reports: { read: false, write: false, delete: false },
         settings: { read: false, write: false, delete: false },
-        financials: { read: false, write: false, delete: false }
+        financials: { read: false, write: false, delete: false },
+        management: { read: false, write: false, delete: false },
+        sales_orders: { read: false, write: false, delete: false }
       },
+
       tenant_id: tenant.id
     }, { transaction });
 

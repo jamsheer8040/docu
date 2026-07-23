@@ -32,7 +32,8 @@ exports.upload = multer({
 
 exports.getConfigs = async (req, res) => {
   try {
-    const configs = await SystemConfig.findAll() || [];
+    // Only fetch global configs (tenant_id IS NULL)
+    const configs = await SystemConfig.findAll({ where: { tenant_id: null } }) || [];
     const configMap = {};
     configs.forEach(c => {
       try {
@@ -55,7 +56,8 @@ exports.updateConfigs = async (req, res) => {
     for (const [key, value] of Object.entries(settings)) {
       await SystemConfig.upsert({
         key,
-        value: typeof value === 'object' ? JSON.stringify(value) : String(value)
+        value: typeof value === 'object' ? JSON.stringify(value) : String(value),
+        tenant_id: req.user.tenant_id
       });
     }
     

@@ -9,8 +9,7 @@ const Role = sequelize.define('Role', {
   },
   name: {
     type: DataTypes.STRING(100),
-    allowNull: false,
-    unique: true
+    allowNull: false
   },
   permissions: {
     type: DataTypes.JSON,
@@ -25,7 +24,8 @@ const Role = sequelize.define('Role', {
       wallet: { read: false, write: false, delete: false },
       reports: { read: false, write: false, delete: false },
       settings: { read: false, write: false, delete: false },
-      financials: { read: false, write: false, delete: false }
+      financials: { read: false, write: false, delete: false },
+      management: { read: false, write: false, delete: false }
     }
   },
   type: {
@@ -43,7 +43,13 @@ const Role = sequelize.define('Role', {
   }
 }, {
   tableName: 'roles',
-  timestamps: true
+  timestamps: true,
+  indexes: [
+    {
+      unique: true,
+      fields: ['name', 'tenant_id']
+    }
+  ]
 });
 
 module.exports = Role;
