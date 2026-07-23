@@ -68,7 +68,7 @@ module.exports = {
     ]);
 
     await queryInterface.bulkInsert('tenants', [
-      { id: 1, name: 'Demo Company', plan_id: 1, status: 'active', subscription_ends_at: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000), created_at: now, updated_at: now }
+      { id: 1, name: 'Demo Company', slug: 'demo-company', plan_id: 1, status: 'active', subscription_ends_at: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000), created_at: now, updated_at: now }
     ]);
 
     // 2. Users

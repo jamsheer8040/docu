@@ -8,7 +8,7 @@ module.exports = {
       const leadsTableInfo = await queryInterface.describeTable('leads');
       if (!leadsTableInfo.service_id) {
         await queryInterface.addColumn('leads', 'service_id', {
-          type: Sequelize.INTEGER,
+          type: Sequelize.BIGINT,
           allowNull: true,
           references: {
             model: 'service_types',
