@@ -4,9 +4,9 @@ const User = require('../models/User');
 exports.loginValidator = [
   body('email')
     .trim()
+    .toLowerCase()
     .notEmpty().withMessage('Email is required')
-    .isEmail().withMessage('Please provide a valid email')
-    .normalizeEmail(),
+    .isEmail().withMessage('Please provide a valid email'),
   body('password')
     .notEmpty().withMessage('Password is required')
 ];
@@ -18,9 +18,9 @@ exports.registerValidator = [
     .isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
   body('email')
     .trim()
+    .toLowerCase()
     .notEmpty().withMessage('Email is required')
     .isEmail().withMessage('Please provide a valid email')
-    .normalizeEmail()
     .custom(async (email) => {
       const user = await User.findOne({ where: { email } });
       if (user) {

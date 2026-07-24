@@ -1,0 +1,1928 @@
+{
+  "Plan": {
+    "tableName": "plans",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "name": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "price_monthly": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "price_yearly": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "max_users": {
+        "type": "INTEGER",
+        "allowNull": true,
+        "defaultValue": 5
+      },
+      "max_customers": {
+        "type": "INTEGER",
+        "allowNull": true,
+        "defaultValue": 100
+      },
+      "max_documents": {
+        "type": "INTEGER",
+        "allowNull": true,
+        "defaultValue": 200
+      },
+      "max_wallet_accounts": {
+        "type": "INTEGER",
+        "allowNull": true,
+        "defaultValue": 3
+      },
+      "features": {
+        "type": "JSON",
+        "allowNull": false,
+        "defaultValue": []
+      },
+      "is_active": {
+        "type": "BOOLEAN",
+        "allowNull": false,
+        "defaultValue": true
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "Tenant": {
+    "tableName": "tenants",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "name": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "slug": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "plan_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "status": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "new_registration",
+        "values": [
+          "new_registration",
+          "trial",
+          "active",
+          "suspended",
+          "expired",
+          "trial_expired",
+          "cancelled"
+        ]
+      },
+      "trial_ends_at": {
+        "type": "DATE",
+        "allowNull": true
+      },
+      "subscription_starts_at": {
+        "type": "DATE",
+        "allowNull": true
+      },
+      "subscription_ends_at": {
+        "type": "DATE",
+        "allowNull": true
+      },
+      "billing_cycle": {
+        "type": "ENUM",
+        "allowNull": true,
+        "values": [
+          "monthly",
+          "yearly"
+        ]
+      },
+      "next_billing_date": {
+        "type": "DATE",
+        "allowNull": true
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "TenantInvoice": {
+    "tableName": "tenant_invoices",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "invoice_number": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "amount": {
+        "type": "DECIMAL",
+        "allowNull": false
+      },
+      "status": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "unpaid",
+        "values": [
+          "unpaid",
+          "paid",
+          "void"
+        ]
+      },
+      "due_date": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "paid_at": {
+        "type": "DATE",
+        "allowNull": true
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "TenantHistory": {
+    "tableName": "tenant_history",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "action": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "old_status": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "new_status": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "plan_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "PromoCode": {
+    "tableName": "promo_codes",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "code": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "discount_type": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "percentage",
+        "values": [
+          "percentage",
+          "fixed"
+        ]
+      },
+      "discount_value": {
+        "type": "DECIMAL",
+        "allowNull": false
+      },
+      "valid_from": {
+        "type": "DATE",
+        "allowNull": true
+      },
+      "valid_until": {
+        "type": "DATE",
+        "allowNull": true
+      },
+      "max_uses": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "current_uses": {
+        "type": "INTEGER",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "is_active": {
+        "type": "BOOLEAN",
+        "allowNull": false,
+        "defaultValue": true
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "User": {
+    "tableName": "users",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "name": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "email": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "password_hash": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "role_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "is_active": {
+        "type": "BOOLEAN",
+        "allowNull": false,
+        "defaultValue": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "Role": {
+    "tableName": "roles",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "name": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "permissions": {
+        "type": "JSON",
+        "allowNull": false,
+        "defaultValue": {
+          "dashboard": {
+            "read": true,
+            "write": true,
+            "delete": true
+          },
+          "customers": {
+            "read": false,
+            "write": false,
+            "delete": false
+          },
+          "documents": {
+            "read": false,
+            "write": false,
+            "delete": false
+          },
+          "services": {
+            "read": false,
+            "write": false,
+            "delete": false
+          },
+          "invoices": {
+            "read": false,
+            "write": false,
+            "delete": false
+          },
+          "expenses": {
+            "read": false,
+            "write": false,
+            "delete": false
+          },
+          "wallet": {
+            "read": false,
+            "write": false,
+            "delete": false
+          },
+          "reports": {
+            "read": false,
+            "write": false,
+            "delete": false
+          },
+          "settings": {
+            "read": false,
+            "write": false,
+            "delete": false
+          },
+          "financials": {
+            "read": false,
+            "write": false,
+            "delete": false
+          },
+          "management": {
+            "read": false,
+            "write": false,
+            "delete": false
+          }
+        }
+      },
+      "type": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "Internal",
+        "values": [
+          "Internal",
+          "CustomerPortal"
+        ]
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "Customer": {
+    "tableName": "customers",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "name": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "email": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "phone_whatsapp": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "address": {
+        "type": "TEXT",
+        "allowNull": true
+      },
+      "city": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "country": {
+        "type": "STRING",
+        "allowNull": false,
+        "defaultValue": "UAE"
+      },
+      "trade_license_no": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "notes": {
+        "type": "TEXT",
+        "allowNull": true
+      },
+      "pricing_category": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "Normal",
+        "values": [
+          "Normal",
+          "Prime",
+          "Prime+"
+        ]
+      },
+      "is_active": {
+        "type": "BOOLEAN",
+        "allowNull": false,
+        "defaultValue": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "Lead": {
+    "tableName": "leads",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "name": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "company_name": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "email": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "phone": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "status": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "New",
+        "values": [
+          "New",
+          "Contacted",
+          "Qualified",
+          "Lost",
+          "Won"
+        ]
+      },
+      "source": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "notes": {
+        "type": "TEXT",
+        "allowNull": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "customer_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "service_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "created_by": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "converted_by": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "converted_at": {
+        "type": "DATE",
+        "allowNull": true
+      },
+      "whatsapp_clicks": {
+        "type": "INTEGER",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "LeadStatusHistory": {
+    "tableName": "lead_status_histories",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "lead_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "previous_status": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "new_status": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "changed_by": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "update_source": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "System",
+        "values": [
+          "Kanban",
+          "List",
+          "Details",
+          "System"
+        ]
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "Document": {
+    "tableName": "documents",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "customer_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "type": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "document_type_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "doc_number": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "issue_date": {
+        "type": "DATEONLY",
+        "allowNull": true
+      },
+      "expiry_date": {
+        "type": "DATEONLY",
+        "allowNull": false
+      },
+      "notes": {
+        "type": "TEXT",
+        "allowNull": true
+      },
+      "file_path": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "staff_name": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "reminder_count": {
+        "type": "INTEGER",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "last_reminded_at": {
+        "type": "DATE",
+        "allowNull": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "days_until_expiry": {
+        "type": "VIRTUAL"
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "DocumentType": {
+    "tableName": "document_types",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "name": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "category": {
+        "type": "STRING",
+        "allowNull": false,
+        "defaultValue": "Company Document"
+      },
+      "is_active": {
+        "type": "BOOLEAN",
+        "defaultValue": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "Tax": {
+    "tableName": "taxes",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "name": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "rate": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "is_active": {
+        "type": "BOOLEAN",
+        "defaultValue": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "WalletAccount": {
+    "tableName": "wallet_accounts",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "name": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "currency": {
+        "type": "STRING",
+        "allowNull": false,
+        "defaultValue": "AED"
+      },
+      "description": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "is_active": {
+        "type": "BOOLEAN",
+        "allowNull": false,
+        "defaultValue": true
+      },
+      "balance": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "WalletTransaction": {
+    "tableName": "wallet_transactions",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "account_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "type": {
+        "type": "ENUM",
+        "allowNull": false,
+        "values": [
+          "Transfer",
+          "Income",
+          "Expense",
+          "Manual"
+        ]
+      },
+      "direction": {
+        "type": "ENUM",
+        "allowNull": false,
+        "values": [
+          "In",
+          "Out"
+        ]
+      },
+      "amount": {
+        "type": "DECIMAL",
+        "allowNull": false
+      },
+      "balance_after": {
+        "type": "DECIMAL",
+        "allowNull": true
+      },
+      "reference_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "reference_type": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "description": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "ServiceType": {
+    "tableName": "service_types",
+    "columns": {
+      "id": {
+        "type": "BIGINT"
+      },
+      "name": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "category": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "pricing_mode": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "Single",
+        "values": [
+          "Single",
+          "Multi"
+        ]
+      },
+      "cost_price": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "description": {
+        "type": "TEXT",
+        "allowNull": true
+      },
+      "is_active": {
+        "type": "BOOLEAN",
+        "defaultValue": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "ServiceTypePricing": {
+    "tableName": "service_type_pricings",
+    "columns": {
+      "id": {
+        "type": "BIGINT"
+      },
+      "service_type_id": {
+        "type": "BIGINT",
+        "allowNull": false
+      },
+      "pricing_type": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "Single",
+        "values": [
+          "Single",
+          "Normal",
+          "Prime",
+          "Prime+"
+        ]
+      },
+      "service_charge": {
+        "type": "DECIMAL",
+        "allowNull": true
+      },
+      "selling_price": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "ServiceOrder": {
+    "tableName": "service_orders",
+    "columns": {
+      "id": {
+        "type": "BIGINT"
+      },
+      "customer_id": {
+        "type": "BIGINT",
+        "allowNull": false
+      },
+      "service_type_id": {
+        "type": "BIGINT",
+        "allowNull": false
+      },
+      "status": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "Pending",
+        "values": [
+          "Pending",
+          "Assigned",
+          "In Progress",
+          "Waiting for Customer",
+          "On Hold",
+          "Completed",
+          "Cancelled",
+          "CompletedInvoicePending",
+          "CompletedInvoiceCreated"
+        ]
+      },
+      "notes": {
+        "type": "TEXT",
+        "allowNull": true
+      },
+      "started_at": {
+        "type": "DATE",
+        "allowNull": true
+      },
+      "completed_at": {
+        "type": "DATE",
+        "allowNull": true
+      },
+      "criticality": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "Normal",
+        "values": [
+          "Normal",
+          "Moderate",
+          "Critical"
+        ]
+      },
+      "initial_criticality": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "Normal",
+        "values": [
+          "Normal",
+          "Moderate",
+          "Critical"
+        ]
+      },
+      "reminder_count": {
+        "type": "INTEGER",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "SalesOrder": {
+    "tableName": "sales_orders",
+    "columns": {
+      "id": {
+        "type": "BIGINT"
+      },
+      "order_number": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "order_date": {
+        "type": "DATEONLY",
+        "allowNull": false,
+        "defaultValue": {}
+      },
+      "customer_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "contact_person": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "sales_executive_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "branch": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "customer_reference": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "internal_remarks": {
+        "type": "TEXT",
+        "allowNull": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "SalesOrderItem": {
+    "tableName": "sales_order_items",
+    "columns": {
+      "id": {
+        "type": "BIGINT"
+      },
+      "sales_order_id": {
+        "type": "BIGINT",
+        "allowNull": false
+      },
+      "service_type_id": {
+        "type": "BIGINT",
+        "allowNull": true
+      },
+      "service_name": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "description": {
+        "type": "TEXT",
+        "allowNull": true
+      },
+      "quantity": {
+        "type": "INTEGER",
+        "allowNull": false,
+        "defaultValue": 1
+      },
+      "estimated_price": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "expected_processing_time": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "priority": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "Normal",
+        "values": [
+          "Normal",
+          "Moderate",
+          "Critical"
+        ]
+      },
+      "status": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "Not Started",
+        "values": [
+          "Not Started",
+          "Pending",
+          "In Progress",
+          "CompletedInvoicePending",
+          "CompletedInvoiceCreated",
+          "Cancelled"
+        ]
+      },
+      "service_order_id": {
+        "type": "BIGINT",
+        "allowNull": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "Invoice": {
+    "tableName": "invoices",
+    "columns": {
+      "id": {
+        "type": "BIGINT"
+      },
+      "invoice_number": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "customer_id": {
+        "type": "BIGINT",
+        "allowNull": false
+      },
+      "service_order_id": {
+        "type": "BIGINT",
+        "allowNull": true
+      },
+      "subtotal": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "discount": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "tax": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "total": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "paid_amount": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "cost_total": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "status": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "Draft",
+        "values": [
+          "Draft",
+          "Pending Approval",
+          "Approved",
+          "Issued",
+          "Partially Paid",
+          "Paid",
+          "Overdue",
+          "Cancelled"
+        ]
+      },
+      "payment_status": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "Unpaid",
+        "values": [
+          "Unpaid",
+          "Partial",
+          "Paid"
+        ]
+      },
+      "due_date": {
+        "type": "DATEONLY",
+        "allowNull": true
+      },
+      "paid_at": {
+        "type": "DATE",
+        "allowNull": true
+      },
+      "notes": {
+        "type": "TEXT",
+        "allowNull": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "InvoiceItem": {
+    "tableName": "invoice_items",
+    "columns": {
+      "id": {
+        "type": "BIGINT"
+      },
+      "invoice_id": {
+        "type": "BIGINT",
+        "allowNull": false
+      },
+      "description": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "quantity": {
+        "type": "INTEGER",
+        "allowNull": false,
+        "defaultValue": 1
+      },
+      "unit_price": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "list_price": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "cost_price": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "service_charge": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "selling_price": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "vat_percentage": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "vat_amount": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "total": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "wallet_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "ExpenseType": {
+    "tableName": "expense_types",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "type_name": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "description": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "status": {
+        "type": "ENUM",
+        "defaultValue": "Active",
+        "values": [
+          "Active",
+          "Inactive"
+        ]
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "ExpenseSubType": {
+    "tableName": "expense_sub_types",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "expense_type_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "sub_type_name": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "description": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "status": {
+        "type": "ENUM",
+        "defaultValue": "Active",
+        "values": [
+          "Active",
+          "Inactive"
+        ]
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "Expense": {
+    "tableName": "expenses",
+    "columns": {
+      "id": {
+        "type": "BIGINT"
+      },
+      "description": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "expense_sub_type_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "amount": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "paid_amount": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "status": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "Unpaid",
+        "values": [
+          "Paid",
+          "Unpaid",
+          "Partially Paid"
+        ]
+      },
+      "payment_date": {
+        "type": "DATEONLY",
+        "allowNull": true
+      },
+      "account_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "notes": {
+        "type": "TEXT",
+        "allowNull": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "SystemConfig": {
+    "tableName": "system_configs",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "key": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "value": {
+        "type": "TEXT",
+        "allowNull": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "Shareholder": {
+    "tableName": "shareholders",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "name": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "shareholder_id": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "email": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "mobile": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "nationality": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "identity_number": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "address": {
+        "type": "TEXT",
+        "allowNull": true
+      },
+      "bank_details": {
+        "type": "JSON",
+        "allowNull": true
+      },
+      "ownership_percentage": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "joining_date": {
+        "type": "DATEONLY",
+        "allowNull": true
+      },
+      "status": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "Active",
+        "values": [
+          "Active",
+          "Inactive"
+        ]
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "deletedAt": {
+        "type": "DATE"
+      }
+    }
+  },
+  "OwnershipChange": {
+    "tableName": "ownership_changes",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "shareholder_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "previous_percentage": {
+        "type": "DECIMAL",
+        "allowNull": false
+      },
+      "new_percentage": {
+        "type": "DECIMAL",
+        "allowNull": false
+      },
+      "previous_capital_requirement": {
+        "type": "DECIMAL",
+        "allowNull": true
+      },
+      "new_capital_requirement": {
+        "type": "DECIMAL",
+        "allowNull": true
+      },
+      "user_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "reason": {
+        "type": "TEXT",
+        "allowNull": true
+      },
+      "date": {
+        "type": "DATE",
+        "allowNull": false,
+        "defaultValue": {}
+      },
+      "attachment_url": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "CapitalTransaction": {
+    "tableName": "capital_transactions",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "shareholder_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "type": {
+        "type": "ENUM",
+        "allowNull": false,
+        "values": [
+          "Contribution",
+          "Refund",
+          "Advance",
+          "Adjustment"
+        ]
+      },
+      "amount": {
+        "type": "DECIMAL",
+        "allowNull": false
+      },
+      "method": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "wallet_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "reference_number": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "remarks": {
+        "type": "TEXT",
+        "allowNull": true
+      },
+      "date": {
+        "type": "DATEONLY",
+        "allowNull": false
+      },
+      "attachment_url": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "DividendDeclaration": {
+    "tableName": "dividend_declarations",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "financial_year": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "total_profit": {
+        "type": "DECIMAL",
+        "allowNull": false
+      },
+      "dividend_amount": {
+        "type": "DECIMAL",
+        "allowNull": false
+      },
+      "declaration_date": {
+        "type": "DATEONLY",
+        "allowNull": false
+      },
+      "status": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "Draft",
+        "values": [
+          "Draft",
+          "Declared",
+          "Partially Paid",
+          "Fully Paid",
+          "Cancelled"
+        ]
+      },
+      "remarks": {
+        "type": "TEXT",
+        "allowNull": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "DividendDistribution": {
+    "tableName": "dividend_distributions",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "declaration_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "shareholder_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "ownership_percentage": {
+        "type": "DECIMAL",
+        "allowNull": false
+      },
+      "allocated_amount": {
+        "type": "DECIMAL",
+        "allowNull": false
+      },
+      "paid_amount": {
+        "type": "DECIMAL",
+        "allowNull": false,
+        "defaultValue": 0
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "DividendPayment": {
+    "tableName": "dividend_payments",
+    "columns": {
+      "id": {
+        "type": "INTEGER"
+      },
+      "distribution_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "amount": {
+        "type": "DECIMAL",
+        "allowNull": false
+      },
+      "date": {
+        "type": "DATEONLY",
+        "allowNull": false
+      },
+      "method": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "wallet_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "reference_number": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "remarks": {
+        "type": "TEXT",
+        "allowNull": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "VoucherDesign": {
+    "tableName": "voucher_designs",
+    "columns": {
+      "id": {
+        "type": "BIGINT"
+      },
+      "voucher_type": {
+        "type": "ENUM",
+        "allowNull": false,
+        "values": [
+          "Invoice",
+          "Sales Order",
+          "Quotation",
+          "Payment Receipt",
+          "Expense Voucher"
+        ]
+      },
+      "name": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "is_default": {
+        "type": "BOOLEAN",
+        "allowNull": false,
+        "defaultValue": false
+      },
+      "branch": {
+        "type": "STRING",
+        "allowNull": true
+      },
+      "language": {
+        "type": "ENUM",
+        "allowNull": false,
+        "defaultValue": "English",
+        "values": [
+          "English",
+          "Arabic",
+          "Bilingual"
+        ]
+      },
+      "layout": {
+        "type": "STRING",
+        "allowNull": false,
+        "defaultValue": "A4 Portrait"
+      },
+      "header_config": {
+        "type": "JSON",
+        "allowNull": true
+      },
+      "info_config": {
+        "type": "JSON",
+        "allowNull": true
+      },
+      "table_config": {
+        "type": "JSON",
+        "allowNull": true
+      },
+      "totals_config": {
+        "type": "JSON",
+        "allowNull": true
+      },
+      "footer_config": {
+        "type": "JSON",
+        "allowNull": true
+      },
+      "branding_config": {
+        "type": "JSON",
+        "allowNull": true
+      },
+      "print_config": {
+        "type": "JSON",
+        "allowNull": true
+      },
+      "number_format": {
+        "type": "JSON",
+        "allowNull": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  },
+  "VoucherDesignAuditLog": {
+    "tableName": "voucher_design_audit_logs",
+    "columns": {
+      "id": {
+        "type": "BIGINT"
+      },
+      "user_id": {
+        "type": "INTEGER",
+        "allowNull": true
+      },
+      "voucher_type": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "template_name": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "action": {
+        "type": "STRING",
+        "allowNull": false
+      },
+      "previous_values": {
+        "type": "JSON",
+        "allowNull": true
+      },
+      "new_values": {
+        "type": "JSON",
+        "allowNull": true
+      },
+      "tenant_id": {
+        "type": "INTEGER",
+        "allowNull": false
+      },
+      "created_at": {
+        "type": "DATE",
+        "allowNull": false
+      },
+      "updated_at": {
+        "type": "DATE",
+        "allowNull": false
+      }
+    }
+  }
+}
